@@ -1,0 +1,35 @@
+exclude = [
+    ".git",
+    ".idea",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".venv",
+    "site-packages",
+]
+
+line-length = 88
+indent-width = 4
+fix = true
+
+[lint]
+select = ["A", "B", "C", "E", "F", "I", "N", "Q", "W", "ANN", "ARG",
+    "ASYNC", "COM", "C4", "FURB", "FLY", "ICN", "INT", "ISC", "NPY",
+    "PD", "PERF", "PIE", "PL", "PTH", "RET", "RUF", "SIM", "SLF",
+    "TCH", "TID", "TRY", "T20"]
+ignore = ["COM812", "ISC001", "ANN101", "PERF203", "PLR0913"]
+
+[lint.per-file-ignores]
+"__init__.py" = ["E402", "F401", "F403", "F811"]
+"save_helper.py" = ["ANN401"]
+
+[lint.isort]
+lines-after-imports = 2
+combine-as-imports = true
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = true
