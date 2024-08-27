@@ -1,3 +1,5 @@
+"""Functions for creating player matchlogs for entire season."""
+
 import json
 import os
 from functools import reduce
@@ -31,10 +33,21 @@ _player_lookup_dict: dict[str, Player] = {el.fbref_name: el for el in _list_play
 
 
 def process_single_team(team: Team, season: Season) -> list[dict[str, PlayerGameWeek]]:
-    folder_prefix: Path = (
-        DATA_FOLDER_FBREF / season.folder / "matches" / team.short_name
-    )
-    list_files: list[str] = next(iter(os.walk(folder_prefix)))[2]
+    """
+
+    Args:
+    ----
+        team: Team class object.
+        season: Season.
+
+    Returns:
+    -------
+        A list containing all players' gameweek data for the team.
+
+    """
+    list_files: list[str] = next(
+        iter(os.walk(DATA_FOLDER_FBREF / season.folder / "matches" / team.short_name))
+    )[2]
     dfs_summary: list[pd.DataFrame] = []
     dfs_passing: list[pd.DataFrame] = []
     dfs_defense: list[pd.DataFrame] = []
@@ -42,7 +55,9 @@ def process_single_team(team: Team, season: Season) -> list[dict[str, PlayerGame
     dfs_keeper: list[pd.DataFrame] = []
 
     for fl in list_files:
-        df_stats: pd.DataFrame = pd.read_csv(folder_prefix / fl)
+        df_stats: pd.DataFrame = pd.read_csv(
+            DATA_FOLDER_FBREF / season.folder / "matches" / team.short_name / fl
+        )
         df_stats["starts"] = np.where(df_stats["player"].str.contains("\xa0"), 0, 1)
         df_stats["player"] = df_stats["player"].str.strip()
         _join_cols: list[str] = ["player", "date", "venue"]
@@ -168,6 +183,13 @@ def process_single_team(team: Team, season: Season) -> list[dict[str, PlayerGame
 def save_aggregate_player_matchlogs(
     season: Literal[Seasons.SEASON_2324, Seasons.SEASON_2425],
 ) -> None:
+    """
+
+    Args:
+    ----
+        season: Season.
+
+    """
     dfs: list[dict[str, PlayerGameWeek]] = []
     _teams: list[str] = get_teams(season.value)
     for team_name in rich.progress.track(_teams):

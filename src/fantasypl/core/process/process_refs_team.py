@@ -1,3 +1,5 @@
+"""Functions for creating Team objects JSON."""
+
 import pandas as pd
 from loguru import logger
 
@@ -12,7 +14,7 @@ from fantasypl.config.references.team_refs import FBREF_FPL_TEAM_REF_DICT
 from fantasypl.utils.save_helper import save_json
 
 
-def get_team_references() -> None:
+def get_team_references() -> None:  # noqa: D103
     teams: list[Team] = []
     for season in [Seasons.SEASON_2324.value, Seasons.SEASON_2425.value]:
         df_fpl_teams: pd.DataFrame = pd.read_csv(

@@ -1,3 +1,5 @@
+"""Functions for creating Player objects JSON."""
+
 import json
 from pathlib import Path
 
@@ -17,6 +19,13 @@ from fantasypl.utils.save_helper import save_json
 
 
 def get_player_references(season: Season) -> None:
+    """
+
+    Args:
+    ----
+        season: Season.
+
+    """
     players: list[Player] = []
     dfs: list[pd.DataFrame] = []
     for s in [Seasons.SEASON_2324.value, Seasons.SEASON_2425.value]:
@@ -38,7 +47,7 @@ def get_player_references(season: Season) -> None:
     df_fpl["fbref_id"] = df_fpl["fpl_code"].map(
         {v: k for k, v in FBREF_FPL_PLAYER_REF_DICT.items()},
     )
-    player_ids: dict[str, str] = {k: "" for k in df_fpl["fbref_id"].dropna().tolist()}
+    player_ids: dict[str, str] = dict.fromkeys(df_fpl["fbref_id"].dropna().tolist(), "")
     for k in rich.progress.track(player_ids, "Reading FBRef player JSONs"):
         with Path.open(
             DATA_FOLDER_FBREF / season.folder / "player_matchlogs" / f"{k}.json", "r"

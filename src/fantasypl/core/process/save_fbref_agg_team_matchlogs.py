@@ -1,3 +1,5 @@
+"""Functions for creating team matchlogs for entire season."""
+
 import json
 from functools import reduce
 from pathlib import Path
@@ -26,6 +28,19 @@ def process_single_team(
     season: Season,
     last_season_flag: bool = False,
 ) -> list[dict[str, TeamGameweek]]:
+    """
+
+    Args:
+    ----
+        team_short_name: Team FPL API short name.
+        season: Season.
+        last_season_flag: True if data required for last season, False otherwise.
+
+    Returns:
+    -------
+        A list containing teams' gameweek data for the team.
+
+    """
     folder_structure: str = (
         f"{DATA_FOLDER_FBREF}/{season.folder}/"
         f"team_matchlogs/{team_short_name}/{{}}.csv"
@@ -197,6 +212,14 @@ def save_aggregate_team_matchlogs(
     season: Literal[Seasons.SEASON_2324, Seasons.SEASON_2425],
     last_season_flag: bool = False,
 ) -> None:
+    """
+
+    Args:
+    ----
+        season: Season.
+        last_season_flag: True if data required for last season, False otherwise.
+
+    """
     dfs: list[dict[str, TeamGameweek]] = []
     _teams: list[str] = get_teams(season.value)
     for team_name in rich.progress.track(_teams):

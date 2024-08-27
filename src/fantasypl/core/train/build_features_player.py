@@ -1,3 +1,5 @@
+"""Functions for creating features for player models."""
+
 import json
 from pathlib import Path
 
@@ -37,12 +39,22 @@ def save_player_joined_df(
     target: str,
     fname: str,
 ) -> None:
+    """
+
+    Args:
+    ----
+        data: A pandas dataframe having the entire dataset.
+        season: Season.
+        cols_form: List of column names for lagged features on.
+        target: The target(y) column.
+        fname: File name to save.
+
+    """
     if "xmins" in fname:
         data["starts"] = data["starts"].astype(int)
     grouped_form_data: pd.DataFrame = get_form_data(
         data=data,
         cols=cols_form,
-        group_col="player",
         team_or_player="player",
     )
     df_final: pd.DataFrame = data.dropna(subset=[target]).merge(
@@ -70,6 +82,13 @@ def save_player_joined_df(
 
 
 def get_players_training_data(season: Season) -> None:
+    """
+
+    Args:
+    ----
+        season: Season.
+
+    """
     with Path.open(
         DATA_FOLDER_FBREF / season.folder / "player_matchlogs.json", "r"
     ) as f:

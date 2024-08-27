@@ -1,3 +1,5 @@
+"""Functions for creating player train-test splits and preprocessing."""
+
 import pandas as pd
 from loguru import logger
 
@@ -15,6 +17,16 @@ def build_split_player(
     target_name: str,
     target_col: str,
 ) -> None:
+    """
+
+    Args:
+    ----
+        season: Season.
+        position: FBRef position for models.
+        target_name: The model name.
+        target_col: The target(y) column.
+
+    """
     df_features: pd.DataFrame = pd.read_csv(
         DATA_FOLDER_FBREF
         / season.folder

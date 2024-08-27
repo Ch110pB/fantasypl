@@ -1,3 +1,5 @@
+"""Functions for getting FBRef match details"""
+
 import asyncio
 import json
 from pathlib import Path
@@ -34,6 +36,24 @@ def get_fpath(
     tables: list[str],
     j: int,
 ) -> Path:
+    """
+    Args:
+    ----
+        season: Season.
+        team_input: Team FBRef ID.
+        date: Date of the match.
+        tables: Tables Home/Away.
+        j: Iterator for finding table name.
+
+    Returns:
+    -------
+        Path for saving file.
+
+    Raises:
+    ------
+        IndexError: If team FBRef ID is not found.
+
+    """
     try:
         team: Team = next(team for team in _list_teams if team.fbref_id == team_input)
     except StopIteration as err:
@@ -44,11 +64,18 @@ def get_fpath(
         / season.folder
         / "matches"
         / team.short_name
-        / f"{tables[j].replace(f"stats_{team_input}","").strip("_")}_{date}.csv"
+        / f"{tables[j].replace(f"stats_{team_input}", "").strip("_")}_{date}.csv"
     )
 
 
 def get_matches(season: Season) -> None:
+    """
+
+    Args:
+    ----
+        season: Season.
+
+    """
     logger.info("Downloading match data for season {}", season.fbref_name)
     df_links: pd.DataFrame = pd.read_csv(
         DATA_FOLDER_FBREF / season.folder / "match_links.csv",

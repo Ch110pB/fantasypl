@@ -1,3 +1,5 @@
+"""Constants for absolute folder paths."""
+
 from pathlib import Path
 
 

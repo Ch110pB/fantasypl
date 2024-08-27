@@ -1,3 +1,5 @@
+"""Functions for creating teams and players dataframes from FPL API data."""
+
 import json
 from pathlib import Path
 from typing import Any
@@ -31,6 +33,13 @@ _cols_players: list[str] = [
 
 
 def save_teams(season: Season) -> None:
+    """
+
+    Args:
+    ----
+        season: Season.
+
+    """
     with Path.open(DATA_FOLDER_FPL / season.folder / "bootstrap.json", "r") as f:
         list_teams_dicts: list[dict[str, Any]] | None = json.load(f).get("teams")
     if not list_teams_dicts:
@@ -43,6 +52,13 @@ def save_teams(season: Season) -> None:
 
 
 def save_players(season: Season) -> None:
+    """
+
+    Args:
+    ----
+        season: Season.
+
+    """
     with Path.open(DATA_FOLDER_FPL / season.folder / "bootstrap.json", "r") as f:
         list_players_dicts: list[dict[str, Any]] | None = json.load(f).get("elements")
     if not list_players_dicts:

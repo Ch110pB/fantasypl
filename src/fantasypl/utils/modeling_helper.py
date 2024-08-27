@@ -1,3 +1,5 @@
+"""Helper functions for building models and predictions."""
+
 import json
 import pickle
 from pathlib import Path
@@ -19,6 +21,16 @@ from fantasypl.utils.save_helper import save_pkl
 
 
 def get_teamgw_json_to_df(season: Season) -> pd.DataFrame:
+    """
+    Args:
+    ----
+        season: Season.
+
+    Returns:
+    -------
+        A pandas dataframe converted from the team matchlogs JSON for the season.
+
+    """
     with Path.open(DATA_FOLDER_FBREF / season.folder / "team_matchlogs.json", "r") as f:
         list_team_matchlogs: list[TeamGameweek] = [
             TeamGameweek.model_validate(el) for el in json.load(f).get("team_matchlogs")
@@ -27,6 +39,16 @@ def get_teamgw_json_to_df(season: Season) -> pd.DataFrame:
 
 
 def get_teams(season: Season) -> list[str]:
+    """
+    Args:
+    ----
+        season: Season.
+
+    Returns:
+    -------
+        A list of team names for the season.
+
+    """
     return pd.read_csv(f"{DATA_FOLDER_FBREF}/{season.folder}/teams.csv")[
         "name"
     ].tolist()
@@ -35,13 +57,24 @@ def get_teams(season: Season) -> list[str]:
 def get_form_data(
     data: pd.DataFrame,
     cols: list[str],
-    group_col: str,
     team_or_player: Literal["team", "player"],
 ) -> pd.DataFrame:
+    """
+    Args:
+    ----
+        data: A pandas dataframe having the entire dataset.
+        cols: List of column names to get lagged features on.
+        team_or_player: Team/Player - the element to group by.
+
+    Returns:
+    -------
+        A pandas dataframe containing the lagged features.
+
+    """
     data = data.sort_values(by="date", ascending=True)
     for col in cols:
         for i in range(1, 6):
-            data[f"{col}_lag_{i}"] = data.groupby(group_col)[col].shift(i)
+            data[f"{col}_lag_{i}"] = data.groupby(team_or_player)[col].shift(i)
     return data[
         [team_or_player, "date", *[col for col in data.columns if "_lag_" in col]]
     ]
@@ -50,20 +83,31 @@ def get_form_data(
 def get_static_data(
     data: pd.DataFrame,
     cols: list[str],
-    group_col: str,
     team_or_player: Literal["team", "player"],
 ) -> pd.DataFrame:
+    """
+    Args:
+    ----
+        data: A pandas dataframe having the entire dataset.
+        cols: List of column names to get aggregated features on.
+        team_or_player: Team/Player - the element to group by.
+
+    Returns:
+    -------
+        A pandas dataframe containing the aggregated features.
+
+    """
     data = data.sort_values(by="date", ascending=True)
     for col in cols:
         data[f"{col}_mean"] = (
-            data.groupby(group_col)[col].shift(1).rolling(window=5).mean()
+            data.groupby(team_or_player)[col].shift(1).rolling(window=5).mean()
         )
     return data[
         [team_or_player, "date", *[col for col in data.columns if "_mean" in col]]
     ]
 
 
-def preprocess_data_and_save(
+def preprocess_data_and_save(  # noqa: PLR0917
     df: pd.DataFrame,
     target_col: str,
     target_name: str,
@@ -73,6 +117,19 @@ def preprocess_data_and_save(
     season: Season,
     position: str | None = None,
 ) -> None:
+    """
+    Args:
+    ----
+        df: The entire features dataframe.
+        target_col: The target(y) column.
+        target_name: The model name.
+        categorical_features: List of columns containing categorical features.
+        categories: List of all categories of the categorical columns.
+        team_or_player: Team/Player - the element to create features for.
+        season: Season.
+        position: FBRef position for player models. None for team models.
+
+    """
     df_us: pd.DataFrame = (
         pd.concat(
             [
@@ -128,11 +185,11 @@ def preprocess_data_and_save(
     }
 
     folder: str = season.folder if position is None else f"{season.folder}/{position}"
-    for arr in dict_array:
+    for key, value in dict_array.items():
         fpath: Path = (
-            MODEL_FOLDER / folder / f"model_{team_or_player}_{target_name}/{arr}.pkl"
+            MODEL_FOLDER / folder / f"model_{team_or_player}_{target_name}/{key}.pkl"
         )
-        save_pkl(dict_array[arr], fpath)
+        save_pkl(value, fpath)
     fpath_proc: Path = (
         MODEL_FOLDER / folder / f"model_{team_or_player}_{target_name}/preprocessor.pkl"
     )
@@ -148,6 +205,17 @@ def get_train_test_data(
     npt.NDArray[np.float32],
     npt.NDArray[np.float32],
 ]:
+    """
+    Args:
+    ----
+        folder: The folder to get train-test splits.
+        season: Season.
+
+    Returns:
+    -------
+        The train and test splits.
+
+    """
     list_array: list[str] = ["x_train", "y_train", "x_test", "y_test"]
     dict_array: dict[str, npt.NDArray[np.float32]] = {}
     for arr in list_array:

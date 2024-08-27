@@ -1,3 +1,5 @@
+"""Functions for getting FBRef team matchlogs."""
+
 import asyncio
 import json
 from pathlib import Path
@@ -34,6 +36,14 @@ _stat_tables: list[str] = [
 
 
 def get_matchlogs(season: Season, filter_teams: list[str] | None = None) -> None:
+    """
+
+    Args:
+    ----
+        season: Season.
+        filter_teams: Optional list of team short names to run on.
+
+    """
     with Path.open(DATA_FOLDER_REF / "teams.json", "r") as f:
         list_teams: list[Team] = [
             Team.model_validate(el) for el in json.load(f).get("teams")

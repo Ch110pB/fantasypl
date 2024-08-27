@@ -1,3 +1,5 @@
+"""Functions for getting FBRef teams."""
+
 from typing import TYPE_CHECKING
 
 from loguru import logger
@@ -16,6 +18,13 @@ if TYPE_CHECKING:
 
 
 def get_teams(season: Season) -> None:
+    """
+
+    Args:
+    ----
+        season: Season.
+
+    """
     url: str = f"{FBREF_BASE_URL}/comps/9/{season.fbref_long_name}/"
     content: str = get_content(url=url, delay=0)
     table_id: str = f"results{season.fbref_long_name}91_overall"

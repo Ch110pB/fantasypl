@@ -1,3 +1,5 @@
+"""Team FBRef ID : FPL API code dictionary."""
+
 FBREF_FPL_TEAM_REF_DICT: dict[str, int] = {
     "19538871": 1,
     "18bb7c10": 3,

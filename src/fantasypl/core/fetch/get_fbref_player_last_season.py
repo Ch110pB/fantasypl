@@ -1,3 +1,5 @@
+"""Functions for getting FBRef player stats for all seasons."""
+
 import asyncio
 from typing import TYPE_CHECKING
 
@@ -33,6 +35,14 @@ _tables: list[str] = [
 
 
 def get_player_season(season: Season, filter_players: list[str] | None = None) -> None:
+    """
+
+    Args:
+    ----
+        season: Season, folder to save the data.
+        filter_players: Optional list of FBRef IDs to run on.
+
+    """
     list_players: list[str] = [*FBREF_FPL_PLAYER_REF_DICT]
     if filter_players is not None:
         list_players = filter_players.copy()
@@ -68,9 +78,9 @@ def get_player_season(season: Season, filter_players: list[str] | None = None) -
                     DATA_FOLDER_FBREF
                     / season.folder
                     / "player_matchlogs"
-                    / f"{player_id}_{_tables[j]
-                    .removeprefix("stats_")
-                    .removesuffix("_dom_lg")}.csv"
+                    / f"{player_id}_{
+                        _tables[j].removeprefix("stats_").removesuffix("_dom_lg")
+                    }.csv"
                 )
 
                 if df.empty and (
@@ -85,9 +95,9 @@ def get_player_season(season: Season, filter_players: list[str] | None = None) -
                         "Stat = {}",
                         season.fbref_name,
                         player_id,
-                        f"{player_id}_{_tables[j]
-                        .removeprefix("stats_")
-                        .removesuffix("_dom_lg")}",
+                        f"{player_id}_{
+                            _tables[j].removeprefix("stats_").removesuffix("_dom_lg")
+                        }",
                     )
                 save_pandas(df=df, fpath=fpath)
             df_details: dict[str, str] = {"name": fbref_name, "position": position}

@@ -1,3 +1,5 @@
+"""Functions for creating team models."""
+
 import pickle
 from typing import TYPE_CHECKING
 
@@ -27,6 +29,14 @@ if TYPE_CHECKING:
 
 
 def train_model_automl(season: Season, target: str) -> None:
+    """
+
+    Args:
+    ----
+        season: Season.
+        target: The target(y) column.
+
+    """
     automl = AutoML()
     x_train: npt.NDArray[np.float32]
     y_train: npt.NDArray[np.float32]

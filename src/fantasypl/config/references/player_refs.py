@@ -1,3 +1,5 @@
+"""Player FBRef ID : FPL API code dictionary."""
+
 FBREF_FPL_PLAYER_REF_DICT: dict[str, int] = {
     "165cf989": 11948,
     "2f90f6b8": 15157,

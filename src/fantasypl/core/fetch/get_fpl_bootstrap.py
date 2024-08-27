@@ -1,3 +1,5 @@
+"""Functions for getting FPL API bootstrap and fixtures data."""
+
 from typing import TYPE_CHECKING
 
 import requests
@@ -14,6 +16,13 @@ if TYPE_CHECKING:
 
 
 def get_bootstrap(season: Season) -> None:
+    """
+
+    Args:
+    ----
+        season: Season.
+
+    """
     response: requests.Response = requests.get(FPL_BOOTSTRAP_URL)
     fpath: Path = DATA_FOLDER_FPL / season.folder / "bootstrap.json"
     save_json(response.json(), fpath)
@@ -21,6 +30,13 @@ def get_bootstrap(season: Season) -> None:
 
 
 def get_fixtures(season: Season) -> None:
+    """
+
+    Args:
+    ----
+        season: Season.
+
+    """
     response: requests.Response = requests.get(FPL_FIXTURES_URL)
     fpath: Path = DATA_FOLDER_FPL / season.folder / "fixtures.json"
     save_json(response.json(), fpath)

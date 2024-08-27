@@ -1,3 +1,5 @@
+"""Functions for getting FBRef match links"""
+
 from typing import TYPE_CHECKING
 
 from loguru import logger
@@ -16,6 +18,12 @@ if TYPE_CHECKING:
 
 
 def get_match_links(season: Season) -> None:
+    """
+    Args:
+    ----
+        season: Season.
+
+    """
     url: str = f"{FBREF_BASE_URL}/comps/9/{season.fbref_long_name}/schedule/"
     content: str = get_content(url=url, delay=0)
     table_id: str = f"sched_{season.fbref_long_name}_9_1"

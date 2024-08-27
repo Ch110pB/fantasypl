@@ -1,3 +1,5 @@
+"""Functions for creating features for team models."""
+
 from functools import reduce
 from typing import TYPE_CHECKING, Literal
 
@@ -52,10 +54,23 @@ def get_groups(
     cols_static: list[str],
     for_or_vs: Literal["for", "vs"],
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+
+    Args:
+    ----
+        data: A pandas dataframe having the entire dataset.
+        cols_form: List of column names to get lagged features on.
+        cols_static: List of column names to get aggregated features on.
+        for_or_vs: for if team features required, vs if opponent features required.
+
+    Returns:
+    -------
+        Two pandas dataframes having the lagged features and aggregated features.
+
+    """
     grouped_form_df: pd.DataFrame = get_form_data(
         data=data,
         cols=cols_form,
-        group_col="team",
         team_or_player="team",
     )
     grouped_form_df = grouped_form_df.rename(
@@ -70,7 +85,6 @@ def get_groups(
     grouped_static_df: pd.DataFrame = get_static_data(
         data=data,
         cols=cols_static,
-        group_col="team",
         team_or_player="team",
     )
     grouped_static_df = grouped_static_df.rename(
@@ -86,7 +100,7 @@ def get_groups(
     return grouped_form_df, grouped_static_df
 
 
-def save_joined_df(
+def save_joined_df(  # noqa: PLR0917
     data: pd.DataFrame,
     season: Season,
     data_form_for: pd.DataFrame,
@@ -95,6 +109,19 @@ def save_joined_df(
     data_static_against: pd.DataFrame,
     stat: str,
 ) -> None:
+    """
+
+    Args:
+    ----
+        data: A pandas dataframe having the entire dataset.
+        season: Season.
+        data_form_for: List of column names for lagged features for team.
+        data_static_for: List of column names for aggregated features for team.
+        data_form_against: List of column names for lagged features for opponent.
+        data_static_against: List of column names for aggregated features for opponent.
+        stat: Model name.
+
+    """
     df_final: pd.DataFrame = reduce(
         lambda left, right: left.merge(
             right,
@@ -119,6 +146,13 @@ def save_joined_df(
 
 
 def get_features(season: Season) -> None:
+    """
+
+    Args:
+    ----
+        season: Season.
+
+    """
     team_df: pd.DataFrame = get_teamgw_json_to_df(season)
     team_df["team"] = [team.fbref_id for team in team_df["team"]]
 

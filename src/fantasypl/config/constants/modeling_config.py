@@ -1,3 +1,5 @@
+"""Configs for modeling with AutoML."""
+
 TASK: str = "regression"
 MODELS: list[str] = ["lgbm", "xgboost", "rf"]
 METRIC: str = "rmse"
