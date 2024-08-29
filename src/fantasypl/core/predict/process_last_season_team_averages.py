@@ -4,8 +4,10 @@ from functools import reduce
 from typing import TYPE_CHECKING
 
 import pandas as pd
+from loguru import logger
 
 from fantasypl.config.constants.folder_config import DATA_FOLDER_FBREF
+from fantasypl.config.constants.mapping_config import FBREF_LEAGUE_STRENGTH_DICT
 from fantasypl.config.models.season import Season, Seasons
 from fantasypl.utils.save_helper import save_pandas
 
@@ -51,6 +53,11 @@ def process_stat(  # noqa: PLR0917
     df_ = df_[["team", game_count_col, *cols]]
     for col in cols:
         df_[col] /= df_[game_count_col]
+        if league_id == 10:  # noqa: PLR2004
+            df_[col] *= (
+                FBREF_LEAGUE_STRENGTH_DICT["eng ENG_2. Championship"]
+                / FBREF_LEAGUE_STRENGTH_DICT["eng ENG_1. Premier League"]
+            )
     return df_.drop(columns=game_count_col)
 
 
@@ -76,6 +83,11 @@ def build_team_features_prediction(season: Season) -> None:
             / "standard.csv"
         )
         df_standard = df_standard[["team", "possession"]]
+        if league_id == 10:  # noqa: PLR2004
+            df_standard["possession"] *= (
+                FBREF_LEAGUE_STRENGTH_DICT["eng ENG_2. Championship"]
+                / FBREF_LEAGUE_STRENGTH_DICT["eng ENG_1. Premier League"]
+            )
 
         df_shooting: pd.DataFrame = process_stat(
             season,
@@ -203,10 +215,9 @@ def build_team_features_prediction(season: Season) -> None:
     df_formation = df_formation.merge(
         df_other_stats, on="team", how="left", validate="1:1"
     )
-    fpath: Path = (
-        DATA_FOLDER_FBREF / season.folder / "team_season" / "seasonal_stats.csv"
-    )
+    fpath: Path = DATA_FOLDER_FBREF / season.folder / "team_seasonal_stats.csv"
     save_pandas(df_formation, fpath)
+    logger.info("Team seasonal averages saved for season: {}", season.fbref_long_name)
 
 
 if __name__ == "__main__":
