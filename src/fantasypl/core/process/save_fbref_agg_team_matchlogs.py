@@ -13,7 +13,7 @@ from fantasypl.config.constants.folder_config import DATA_FOLDER_FBREF, DATA_FOL
 from fantasypl.config.models.season import Season, Seasons
 from fantasypl.config.models.team import Team
 from fantasypl.config.models.team_gameweek import TeamGameweek
-from fantasypl.utils.modeling_helper import get_teams
+from fantasypl.utils.modeling_helper import get_fbref_teams
 from fantasypl.utils.save_helper import save_json
 
 
@@ -23,10 +23,37 @@ with Path.open(DATA_FOLDER_REF / "teams.json", "r") as f:
     ]
 
 
+def process_single_stat(
+    folder_structure: Path,
+    stat: str,
+    rename_dict: dict[str, str],
+    cols: list[str],
+    dropna_cols: list[str],
+) -> pd.DataFrame:
+    """
+
+    Args:
+    ----
+        folder_structure: Path for the parent folder.
+        stat: File name to look at.
+        rename_dict: Column rename dictionary.
+        cols: Columns to be selected.
+        dropna_cols: Columns to mark empty rows.
+
+    Returns:
+    -------
+        A pandas dataframe containing data for a particular stat.
+
+    """
+    df_: pd.DataFrame = pd.read_csv(folder_structure / f"{stat}.csv")
+    df_ = df_.rename(columns=rename_dict)
+    df_ = df_[cols].dropna(subset=dropna_cols)
+    return df_.loc[~df_[dropna_cols].eq("").any(axis=1)]
+
+
 def process_single_team(
     team_short_name: str,
     season: Season,
-    last_season_flag: bool = False,
 ) -> list[dict[str, TeamGameweek]]:
     """
 
@@ -34,149 +61,15 @@ def process_single_team(
     ----
         team_short_name: Team FPL API short name.
         season: Season.
-        last_season_flag: True if data required for last season, False otherwise.
 
     Returns:
     -------
         A list containing teams' gameweek data for the team.
 
     """
-    folder_structure: str = (
-        f"{DATA_FOLDER_FBREF}/{season.folder}/"
-        f"team_matchlogs/{team_short_name}/{{}}.csv"
+    folder_structure: Path = (
+        DATA_FOLDER_FBREF / season.folder / "team_matchlogs" / team_short_name
     )
-    if last_season_flag:
-        folder_structure = (
-            f"{DATA_FOLDER_FBREF}/{Seasons.SEASON_2324.value.folder}/"
-            f"team_matchlogs/{team_short_name}/{{}}.csv"
-        )
-
-    df_schedule_for: pd.DataFrame = pd.read_csv(folder_structure.format("schedule_for"))
-    df_schedule_for = df_schedule_for[
-        ["date", "venue", "result", "possession", "formation", "opp_formation"]
-    ].rename(columns={"opp_formation": "formation_vs"})
-    df_schedule_for = df_schedule_for.dropna(subset=["date", "result"], how="any").drop(
-        columns="result",
-    )
-    df_schedule_for = df_schedule_for.loc[~df_schedule_for[["date"]].eq("").any(axis=1)]
-
-    df_shooting_for: pd.DataFrame = pd.read_csv(
-        folder_structure.format("shooting_for"),
-    ).rename(
-        columns={
-            "header_for_against_date": "date",
-            "header_standard_shots_on_target": "shots_on_target",
-            "header_standard_pens_att": "pens_won",
-            "header_standard_pens_made": "pens_scored",
-            "header_expected_npxg": "npxg",
-        },
-    )
-    df_shooting_for = df_shooting_for[
-        ["date", "shots_on_target", "pens_won", "pens_scored", "npxg"]
-    ].dropna(subset="date")
-    df_shooting_for = df_shooting_for.loc[~df_shooting_for[["date"]].eq("").any(axis=1)]
-
-    df_shooting_vs: pd.DataFrame = pd.read_csv(
-        folder_structure.format("shooting_against"),
-    ).rename(
-        columns={
-            "header_for_against_date": "date",
-            "header_expected_npxg": "npxg_vs",
-        },
-    )
-    df_shooting_vs = df_shooting_vs[["date", "npxg_vs"]].dropna(subset="date")
-    df_shooting_vs = df_shooting_vs.loc[~df_shooting_vs[["date"]].eq("").any(axis=1)]
-
-    df_passing_for: pd.DataFrame = pd.read_csv(
-        folder_structure.format("passing_for"),
-    ).rename(
-        columns={
-            "header_for_against_date": "date",
-            "assisted_shots": "key_passes",
-        },
-    )
-    df_passing_for = df_passing_for[["date", "key_passes", "pass_xa"]].dropna(
-        subset="date",
-    )
-    df_passing_for = df_passing_for.loc[~df_passing_for[["date"]].eq("").any(axis=1)]
-
-    df_defense_vs: pd.DataFrame = pd.read_csv(
-        folder_structure.format("defense_against"),
-    ).rename(
-        columns={
-            "header_for_against_date": "date",
-            "header_tackles_tackles_won": "tackles_won_vs",
-            "header_blocks_blocks": "blocks_vs",
-            "interceptions": "interceptions_vs",
-            "clearances": "clearances_vs",
-        },
-    )
-    df_defense_vs = df_defense_vs[
-        [
-            "date",
-            "tackles_won_vs",
-            "blocks_vs",
-            "interceptions_vs",
-            "clearances_vs",
-        ]
-    ].dropna(subset="date")
-    df_defense_vs = df_defense_vs.loc[~df_defense_vs[["date"]].eq("").any(axis=1)]
-
-    df_keeper_vs: pd.DataFrame = pd.read_csv(
-        folder_structure.format("keeper_against"),
-    ).rename(
-        columns={
-            "header_for_against_date": "date",
-            "header_performance_gk_saves": "gk_saves_vs",
-        },
-    )
-    df_keeper_vs = df_keeper_vs[["date", "gk_saves_vs"]].dropna(subset="date")
-    df_keeper_vs = df_keeper_vs.loc[~df_keeper_vs[["date"]].eq("").any(axis=1)]
-
-    df_gca_for: pd.DataFrame = pd.read_csv(folder_structure.format("gca_for")).rename(
-        columns={
-            "header_for_against_date": "date",
-            "header_sca_types_sca": "sca",
-            "header_gca_types_gca": "gca",
-        },
-    )
-    df_gca_for = df_gca_for[["date", "sca", "gca"]].dropna(subset="date")
-    df_gca_for = df_gca_for.loc[~df_gca_for[["date"]].eq("").any(axis=1)]
-
-    df_misc_for: pd.DataFrame = pd.read_csv(folder_structure.format("misc_for")).rename(
-        columns={
-            "header_for_against_date": "date",
-            "header_performance_cards_yellow": "yellow_cards",
-            "header_performance_cards_red": "red_cards",
-            "header_performance_fouls": "fouls_conceded",
-        },
-    )
-    df_misc_for = df_misc_for[
-        ["date", "yellow_cards", "red_cards", "fouls_conceded"]
-    ].dropna(subset="date")
-    df_misc_for = df_misc_for.loc[~df_misc_for[["date"]].eq("").any(axis=1)]
-
-    df_misc_vs: pd.DataFrame = pd.read_csv(
-        folder_structure.format("misc_against"),
-    ).rename(
-        columns={
-            "header_for_against_date": "date",
-            "header_performance_cards_yellow": "yellow_cards_opp_vs",
-            "header_performance_cards_red": "red_cards_opp_vs",
-            "header_performance_fouled": "fouls_won_vs",
-            "header_performance_pens_conceded": "pens_conceded_vs",
-        },
-    )
-    df_misc_vs = df_misc_vs[
-        [
-            "date",
-            "yellow_cards_opp_vs",
-            "red_cards_opp_vs",
-            "fouls_won_vs",
-            "pens_conceded_vs",
-        ]
-    ].dropna(subset="date")
-    df_misc_vs = df_misc_vs.loc[~df_misc_vs[["date"]].eq("").any(axis=1)]
 
     df_teamgw: pd.DataFrame = reduce(
         lambda left, right: left.merge(
@@ -186,19 +79,136 @@ def process_single_team(
             validate="1:1",
         ),
         [
-            df_schedule_for,
-            df_shooting_for,
-            df_shooting_vs,
-            df_passing_for,
-            df_defense_vs,
-            df_keeper_vs,
-            df_gca_for,
-            df_misc_for,
-            df_misc_vs,
+            process_single_stat(
+                folder_structure,
+                "schedule_for",
+                {"opp_formation": "formation_vs"},
+                [
+                    "opponent",
+                    "date",
+                    "venue",
+                    "result",
+                    "possession",
+                    "formation",
+                    "formation_vs",
+                ],
+                ["date", "result"],
+            ),
+            process_single_stat(
+                folder_structure,
+                "shooting_for",
+                {
+                    "header_for_against_date": "date",
+                    "header_standard_shots_on_target": "shots_on_target",
+                    "header_standard_pens_att": "pens_won",
+                    "header_standard_pens_made": "pens_scored",
+                    "header_expected_npxg": "npxg",
+                },
+                ["date", "shots_on_target", "pens_won", "pens_scored", "npxg"],
+                ["date"],
+            ),
+            process_single_stat(
+                folder_structure,
+                "shooting_against",
+                {
+                    "header_for_against_date": "date",
+                    "header_standard_shots_on_target": "shots_on_target_vs",
+                    "header_expected_npxg": "npxg_vs",
+                },
+                ["date", "shots_on_target_vs", "npxg_vs"],
+                ["date"],
+            ),
+            process_single_stat(
+                folder_structure,
+                "passing_for",
+                {
+                    "header_for_against_date": "date",
+                    "assisted_shots": "key_passes",
+                },
+                ["date", "key_passes", "pass_xa"],
+                ["date"],
+            ),
+            process_single_stat(
+                folder_structure,
+                "gca_for",
+                {
+                    "header_for_against_date": "date",
+                    "header_sca_types_sca": "sca",
+                    "header_gca_types_gca": "gca",
+                },
+                ["date", "sca", "gca"],
+                ["date"],
+            ),
+            process_single_stat(
+                folder_structure,
+                "defense_for",
+                {
+                    "header_for_against_date": "date",
+                    "header_tackles_tackles_won": "tackles_won",
+                    "header_blocks_blocks": "blocks",
+                },
+                [
+                    "date",
+                    "tackles_won",
+                    "blocks",
+                    "interceptions",
+                    "clearances",
+                ],
+                ["date"],
+            ),
+            process_single_stat(
+                folder_structure,
+                "misc_for",
+                {
+                    "header_for_against_date": "date",
+                    "header_performance_cards_yellow": "yellow_cards",
+                    "header_performance_cards_red": "red_cards",
+                    "header_performance_fouls": "fouls_conceded",
+                    "header_performance_fouled": "fouls_won",
+                    "header_performance_pens_conceded": "pens_conceded",
+                },
+                [
+                    "date",
+                    "yellow_cards",
+                    "red_cards",
+                    "fouls_conceded",
+                    "fouls_won",
+                    "pens_conceded",
+                ],
+                ["date"],
+            ),
+            process_single_stat(
+                folder_structure,
+                "misc_against",
+                {
+                    "header_for_against_date": "date",
+                    "header_performance_cards_yellow": "yellow_cards_vs",
+                    "header_performance_cards_red": "red_cards_vs",
+                },
+                [
+                    "date",
+                    "yellow_cards_vs",
+                    "red_cards_vs",
+                ],
+                ["date"],
+            ),
+            process_single_stat(
+                folder_structure,
+                "keeper_for",
+                {
+                    "header_for_against_date": "date",
+                    "header_performance_gk_saves": "gk_saves",
+                },
+                ["date", "gk_saves"],
+                ["date"],
+            ),
         ],
     )
 
     team: Team = next(el for el in _list_teams if el.short_name == team_short_name)
+    df_teamgw["opponent"] = [
+        {t.fbref_name: t for t in _list_teams}.get(t) for t in df_teamgw["opponent"]
+    ]
     df_teamgw = df_teamgw.sort_values(by="date", ascending=True)
     return [
         TeamGameweek.model_validate(
@@ -210,39 +220,31 @@ def process_single_team(
 
 def save_aggregate_team_matchlogs(
     season: Literal[Seasons.SEASON_2324, Seasons.SEASON_2425],
-    last_season_flag: bool = False,
 ) -> None:
     """
 
     Args:
     ----
         season: Season.
-        last_season_flag: True if data required for last season, False otherwise.
 
     """
     dfs: list[dict[str, TeamGameweek]] = []
-    _teams: list[str] = get_teams(season.value)
+    _teams: list[str] = get_fbref_teams(season.value)
     for team_name in rich.progress.track(_teams):
         team: Team = next(el for el in _list_teams if el.fbref_name == team_name)
         df_temp: list[dict[str, TeamGameweek]] = process_single_team(
             team.short_name,
             season.value,
-            last_season_flag,
         )
         dfs += df_temp
-    fpath_str: str = (
-        "team_matchlogs_last_season.json" if last_season_flag else "team_matchlogs.json"
-    )
-    fpath: Path = DATA_FOLDER_FBREF / season.value.folder / fpath_str
+    fpath: Path = DATA_FOLDER_FBREF / season.value.folder / "team_matchlogs.json"
     save_json({"team_matchlogs": dfs}, fpath=fpath, default=str)
     logger.info(
-        "Team matchlogs saved for all clubs from Season: {} / Last season: {}",
+        "Team matchlogs saved for all clubs from Season: {}",
         season.value.fbref_name,
-        last_season_flag,
     )
 
 
 if __name__ == "__main__":
     save_aggregate_team_matchlogs(Seasons.SEASON_2324)
-    save_aggregate_team_matchlogs(Seasons.SEASON_2425, True)
-    save_aggregate_team_matchlogs(Seasons.SEASON_2425, False)
+    save_aggregate_team_matchlogs(Seasons.SEASON_2425)

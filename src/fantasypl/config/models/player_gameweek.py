@@ -51,7 +51,7 @@ class PlayerGameWeek(BaseModel):
     season: str
     date: datetime.date
     venue: Literal["Home", "Away", "Neutral"]
-    short_position: Literal["GK", "DF", "MF", "FW"]
+    short_position: Literal["GK", "DF", "MF", "FW", None]
     minutes: int
     starts: bool
     shots_on_target: int

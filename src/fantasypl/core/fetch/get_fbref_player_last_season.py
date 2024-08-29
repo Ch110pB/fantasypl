@@ -77,7 +77,7 @@ def get_player_season(season: Season, filter_players: list[str] | None = None) -
                 fpath: Path = (
                     DATA_FOLDER_FBREF
                     / season.folder
-                    / "player_matchlogs"
+                    / "player_season"
                     / f"{player_id}_{
                         _tables[j].removeprefix("stats_").removesuffix("_dom_lg")
                     }.csv"
@@ -106,7 +106,7 @@ def get_player_season(season: Season, filter_players: list[str] | None = None) -
                 (
                     DATA_FOLDER_FBREF
                     / season.folder
-                    / "player_matchlogs"
+                    / "player_season"
                     / f"{player_id}.json"
                 ),
             )
@@ -115,4 +115,7 @@ def get_player_season(season: Season, filter_players: list[str] | None = None) -
 
 
 if __name__ == "__main__":
-    get_player_season(Seasons.SEASON_2324.value, filter_players=["6fba4dba"])
+    get_player_season(
+        Seasons.SEASON_2324.value,
+        filter_players=["e16932d8", "66c52a77", "fb495bb8", "d080ed5e"],
+    )

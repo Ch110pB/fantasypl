@@ -61,7 +61,7 @@ def save_player_joined_df(
         grouped_form_data,
         how="left",
         on=["player", "date"],
-        validate="1:1",
+        validate="m:m",
     )
     for position in ["GK", "DF", "MF", "FW"]:
         df_ = (

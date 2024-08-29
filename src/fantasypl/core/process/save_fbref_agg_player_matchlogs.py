@@ -17,7 +17,7 @@ from fantasypl.config.models.player import Player
 from fantasypl.config.models.player_gameweek import PlayerGameWeek
 from fantasypl.config.models.season import Season, Seasons
 from fantasypl.config.models.team import Team
-from fantasypl.utils.modeling_helper import get_teams
+from fantasypl.utils.modeling_helper import get_fbref_teams, get_teamgw_json_to_df
 from fantasypl.utils.save_helper import save_json
 
 
@@ -25,14 +25,31 @@ with Path.open(DATA_FOLDER_REF / "teams.json", "r") as f:
     _list_teams: list[Team] = [
         Team.model_validate(el) for el in json.load(f).get("teams")
     ]
-with Path.open(DATA_FOLDER_FBREF / "players.json", "r") as f:
+with Path.open(DATA_FOLDER_REF / "players.json", "r") as f:
     _list_players: list[Player] = [
         Player.model_validate(el) for el in json.load(f).get("players")
     ]
 _player_lookup_dict: dict[str, Player] = {el.fbref_name: el for el in _list_players}
 
 
-def process_single_team(team: Team, season: Season) -> list[dict[str, PlayerGameWeek]]:
+def filter_minutes(group: pd.DataFrame) -> pd.DataFrame:
+    """
+
+    Args:
+    ----
+        group: The dataframe to filter.
+
+    Returns:
+    -------
+        A pandas dataframe clipped by the first and last nonzero minutes
+
+    """
+    first_nonzero_idx: int = group["minutes"].ne(0).idxmax()  # type: ignore[assignment]
+    last_nonzero_idx: int = group["minutes"].iloc[::-1].ne(0).idxmax()  # type: ignore[assignment]
+    return group.loc[first_nonzero_idx:last_nonzero_idx]
+
+
+def process_single_team(team: Team, season: Season) -> list[dict[str, PlayerGameWeek]]:  # noqa: PLR0914, PLR0915
     """
 
     Args:
@@ -170,8 +187,31 @@ def process_single_team(team: Team, season: Season) -> list[dict[str, PlayerGame
         ),
         [df_summary, df_passing, df_defense, df_misc, df_keeper],
     )
-    df_final = df_final.fillna(0)
-    df_final["player"] = df_final["player"].map(_player_lookup_dict)
+    df_team_gw: pd.DataFrame = get_teamgw_json_to_df(season)
+    df_team_gw["date"] = df_team_gw["date"].astype(str)
+    df_dates: pd.DataFrame = df_team_gw.loc[
+        df_team_gw["team"] == team, ["date", "venue"]
+    ]
+    df_ids: pd.DataFrame = pd.DataFrame({"player": df_final["player"].unique()})
+    df_dates = df_ids.merge(df_dates, how="cross")
+    df_dates["date"] = df_dates["date"].astype(str)
+    df_final = df_final.merge(
+        df_dates, on=["player", "date", "venue"], how="right", validate="1:1"
+    )
+    df_final.loc[:, df_final.columns != "short_position"] = df_final.loc[
+        :, df_final.columns != "short_position"
+    ].fillna(0)
+    df_final[["short_position"]] = df_final[["short_position"]].map(
+        lambda x: None if pd.isna(x) else x
+    )
+    df_final = (
+        df_final.groupby("player")
+        .apply(filter_minutes, include_groups=False)
+        .reset_index(level="player")
+    )
+    df_final["player"] = [
+        {p.fbref_name: p for p in _list_players}.get(p) for p in df_final["player"]
+    ]
     return [
         PlayerGameWeek.model_validate(
             {"team": team, "season": season.fbref_long_name, **row},
@@ -191,7 +231,7 @@ def save_aggregate_player_matchlogs(
 
     """
     dfs: list[dict[str, PlayerGameWeek]] = []
-    _teams: list[str] = get_teams(season.value)
+    _teams: list[str] = get_fbref_teams(season.value)
     for team_name in rich.progress.track(_teams):
         team: Team = next(el for el in _list_teams if el.fbref_name == team_name)
         df_temp: list[dict[str, PlayerGameWeek]] = process_single_team(

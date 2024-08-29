@@ -20,8 +20,6 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
-_promoted_teams: list[str] = ["Ipswich Town", "Leicester City", "Southampton"]
-_relegated_teams: list[str] = ["Luton Town", "Burnley", "Sheffield Utd"]
 _table_id_for: str = "matchlogs_for"
 _table_id_against: str = "matchlogs_against"
 _stat_tables: list[str] = [
@@ -56,24 +54,10 @@ def get_matchlogs(season: Season, filter_teams: list[str] | None = None) -> None
             total=len(list_teams) * len(_stat_tables),
         )
         for team in list_teams:
-            if (
-                team.fbref_name in _relegated_teams
-                and season == Seasons.SEASON_2425.value
-            ):
-                continue
-
             base_url: str = (
                 f"{FBREF_BASE_URL}/squads/{team.fbref_id}/{season.fbref_long_name}/"
                 f"matchlogs/c9/{{stat}}/"
             )
-            if (
-                team.fbref_name in _promoted_teams
-                and season == Seasons.SEASON_2324.value
-            ):
-                base_url = (
-                    f"{FBREF_BASE_URL}/squads/{team.fbref_id}/{season.fbref_long_name}/"
-                    f"matchlogs/c10/{{stat}}/"
-                )
             for stat in _stat_tables:
                 url: str = base_url.format(stat=stat)
                 content: str = get_content(url)

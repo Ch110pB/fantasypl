@@ -14,7 +14,7 @@ from fantasypl.config.constants.modeling_config import (
     SEED,
     SPLITS_CV,
     TASK,
-    TIME_TRAINING,
+    TIME_TRAINING_PLAYER,
 )
 from fantasypl.config.models.season import Season, Seasons
 from fantasypl.utils.modeling_helper import get_train_test_data
@@ -58,7 +58,7 @@ def train_model_automl(season: Season, position: str, target: str) -> None:
         n_splits=SPLITS_CV,
         split_type="uniform",
         seed=SEED,
-        time_budget=TIME_TRAINING,
+        time_budget=TIME_TRAINING_PLAYER,
         early_stop=True,
         verbose=3,
         log_file_name=f"{MODEL_FOLDER}/{season.folder}/{position}/"

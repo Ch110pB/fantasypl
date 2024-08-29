@@ -38,7 +38,7 @@ def get_teamgw_json_to_df(season: Season) -> pd.DataFrame:
     return pd.DataFrame([dict(el) for el in list_team_matchlogs])
 
 
-def get_teams(season: Season) -> list[str]:
+def get_fbref_teams(season: Season) -> list[str]:
     """
     Args:
     ----
@@ -57,7 +57,7 @@ def get_teams(season: Season) -> list[str]:
 def get_form_data(
     data: pd.DataFrame,
     cols: list[str],
-    team_or_player: Literal["team", "player"],
+    team_or_player: Literal["team", "player", "opponent"],
 ) -> pd.DataFrame:
     """
     Args:
@@ -83,7 +83,7 @@ def get_form_data(
 def get_static_data(
     data: pd.DataFrame,
     cols: list[str],
-    team_or_player: Literal["team", "player"],
+    team_or_player: Literal["team", "player", "opponent"],
 ) -> pd.DataFrame:
     """
     Args:

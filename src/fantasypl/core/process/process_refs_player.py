@@ -50,7 +50,7 @@ def get_player_references(season: Season) -> None:
     player_ids: dict[str, str] = dict.fromkeys(df_fpl["fbref_id"].dropna().tolist(), "")
     for k in rich.progress.track(player_ids, "Reading FBRef player JSONs"):
         with Path.open(
-            DATA_FOLDER_FBREF / season.folder / "player_matchlogs" / f"{k}.json", "r"
+            DATA_FOLDER_FBREF / season.folder / "player_season" / f"{k}.json", "r"
         ) as f:
             name_: str = json.load(f).get("name")
             player_ids[k] = name_
