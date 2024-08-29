@@ -11,11 +11,9 @@ from loguru import logger
 
 from fantasypl.config.constants.folder_config import (
     DATA_FOLDER_FBREF,
-    DATA_FOLDER_REF,
     MODEL_FOLDER,
 )
 from fantasypl.config.models.season import Season, Seasons
-from fantasypl.config.models.team import Team
 from fantasypl.config.models.team_gameweek import TeamGameweek
 from fantasypl.core.train.build_features_team import (
     cols_form_for_xgoals,
@@ -25,7 +23,11 @@ from fantasypl.core.train.build_features_team import (
     cols_static_against_xpens,
     cols_static_against_xyc,
 )
-from fantasypl.utils.prediction_helper import pad_lists
+from fantasypl.utils.prediction_helper import (
+    list_teams,
+    pad_lists,
+    process_gameweek_data,
+)
 from fantasypl.utils.save_helper import save_pandas
 
 
@@ -35,11 +37,6 @@ if TYPE_CHECKING:
     import numpy.typing as npt
     import sklearn.compose
 
-
-with Path.open(DATA_FOLDER_REF / "teams.json", "r") as f:
-    _list_teams: list[Team] = [
-        Team.model_validate(el) for el in json.load(f).get("teams")
-    ]
 
 last_season: Season = Seasons.SEASON_2324.value
 
@@ -57,17 +54,7 @@ def build_predict_features(season: Season, gameweek: int) -> pd.DataFrame:
         A dataframe with all the features.
 
     """
-    df_gameweek: pd.DataFrame = pd.read_csv(
-        MODEL_FOLDER / "predictions/team" / f"gameweek_{gameweek}/fixtures.csv"
-    )
-    df_gameweek["team"] = [
-        next(el.fbref_id for el in _list_teams if el.fbref_id == x)
-        for x in df_gameweek["team"]
-    ]
-    df_gameweek["opponent"] = [
-        next(el.fbref_id for el in _list_teams if el.fbref_id == x)
-        for x in df_gameweek["opponent"]
-    ]
+    df_gameweek = process_gameweek_data(gameweek)
 
     with Path.open(
         DATA_FOLDER_FBREF / season.folder / "team_matchlogs.json", "r"
@@ -98,7 +85,7 @@ def build_predict_features(season: Season, gameweek: int) -> pd.DataFrame:
         DATA_FOLDER_FBREF / last_season.folder / "team_seasonal_stats.csv"
     )
     df_prev["team"] = [
-        next(el.fbref_id for el in _list_teams if el.fbref_name == x)
+        next(el.fbref_id for el in list_teams if el.fbref_name == x)
         for x in df_prev["team"]
     ]
     df_prev = df_prev.set_index("team")
@@ -109,7 +96,7 @@ def build_predict_features(season: Season, gameweek: int) -> pd.DataFrame:
     )
     for col in cols:
         df_agg[col] = df_agg.apply(
-            lambda row, c=col: pad_lists(row, df_prev, c), axis=1
+            lambda row, c=col: pad_lists(row, df_prev, c, "team"), axis=1
         )
     df_agg = df_agg.set_index("team")
 
@@ -161,9 +148,9 @@ def predict_for_stat(features: pd.DataFrame, target: str, gameweek: int) -> None
         MODEL_FOLDER
         / "predictions/team"
         / f"gameweek_{gameweek}"
-        / f"prediction_{target}"
+        / f"prediction_{target}.csv"
     )
-    save_pandas(features[["team", target]], fpath)
+    save_pandas(features[["team", "opponent", "gameweek", target]], fpath)
     logger.info("Predictions saved for team {}", target)
 
 

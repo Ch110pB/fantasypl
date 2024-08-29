@@ -121,7 +121,7 @@ def build_stats(season: Season) -> None:  # noqa: PLR0914
             ) as fl:
                 dict_: dict[str, str] = json.load(fl)
             df_: pd.DataFrame = pd.DataFrame([
-                {"player": player, "position": str(dict_["position"])[:2]}
+                {"player": player, "short_position": str(dict_["position"])[:2]}
             ])
         except FileNotFoundError:
             continue
