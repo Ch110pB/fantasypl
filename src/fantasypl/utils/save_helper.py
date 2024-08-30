@@ -11,7 +11,7 @@ import pandas as pd
 def save_json(
     json_dict: dict[str, Any],
     fpath: Path,
-    default: Any | None = None,
+    default: Any | None = None,  # noqa: ANN401
 ) -> None:
     """
     Args:
@@ -38,7 +38,7 @@ def save_pandas(df: pd.DataFrame, fpath: Path) -> None:
     df.to_csv(fpath, index=False)
 
 
-def save_pkl(obj: Any, fpath: Path, protocol: int | None = None) -> None:
+def save_pkl(obj: Any, fpath: Path, protocol: int | None = None) -> None:  # noqa: ANN401
     """
     Args:
     ----

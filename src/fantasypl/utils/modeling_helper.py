@@ -134,7 +134,7 @@ def preprocess_data_and_save(  # noqa: PLR0917
         pd.concat(
             [
                 df[df[target_col] != 0],
-                df[df[target_col] == 0].sample(frac=0.3, random_state=SEED),
+                df[df[target_col] == 0].sample(frac=0.5, random_state=SEED),
             ],
             ignore_index=True,
         )

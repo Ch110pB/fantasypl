@@ -47,22 +47,15 @@ def build_split_player(
     ]
     _add_select_cols: list[str]
     match target_name:
-        case "xgoals" | "xassists" | "xyc" | "xpens":
+        case "xgoals" | "xassists" | "xyc" | "xpens" | "xmins":
             _add_select_cols = [target_col]
-        case "xmins":
-            _add_select_cols = ["minutes", "short_position"]
         case "xsaves":
-            _add_select_cols = ["gk_saves", "npxg_vs"]
+            _add_select_cols = [target_col, "npxg_vs"]
         case _:
             _add_select_cols = []
 
     df_pd: pd.DataFrame = df_features[_select_cols + _add_select_cols]
-    categorical_features: list[str]
-    match target_name:
-        case "xmins":
-            categorical_features = ["venue", "short_position"]
-        case _:
-            categorical_features = ["venue"]
+    categorical_features: list[str] = ["venue"]
     categories: list[list[str]] = [
         df_pd[feature].unique().tolist() for feature in categorical_features
     ]

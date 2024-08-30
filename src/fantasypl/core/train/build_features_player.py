@@ -22,12 +22,8 @@ cols_form_for_xmins: list[str] = [
     "starts",
     "npxg",
     "pass_xa",
-    "progressive_passes",
-    "progressive_carries",
-    "tackles_won",
-    "blocks",
-    "interceptions",
-    "clearances",
+    "progressive_actions",
+    "defensive_actions",
 ]
 cols_form_for_xsaves: list[str] = ["gk_saves", "gk_psxg"]
 
@@ -36,8 +32,7 @@ def save_player_joined_df(
     data: pd.DataFrame,
     season: Season,
     cols_form: list[str],
-    target: str,
-    fname: str,
+    stat: str,
 ) -> None:
     """
 
@@ -46,18 +41,26 @@ def save_player_joined_df(
         data: A pandas dataframe having the entire dataset.
         season: Season.
         cols_form: List of column names for lagged features on.
-        target: The target(y) column.
-        fname: File name to save.
+        stat: Model name.
 
     """
-    if "xmins" in fname:
+    if stat == "xmins":
         data["starts"] = data["starts"].astype(int)
+        data["progressive_actions"] = (
+            data["progressive_carries"] + data["progressive_passes"]
+        )
+        data["defensive_actions"] = (
+            data["tackles_won"]
+            + data["blocks"]
+            + data["interceptions"]
+            + data["clearances"]
+        )
     grouped_form_data: pd.DataFrame = get_form_data(
         data=data,
         cols=cols_form,
         team_or_player="player",
     )
-    df_final: pd.DataFrame = data.dropna(subset=[target]).merge(
+    df_final: pd.DataFrame = data.merge(
         grouped_form_data,
         how="left",
         on=["player", "date"],
@@ -69,16 +72,15 @@ def save_player_joined_df(
             .dropna(how="any")
             .reset_index(drop=True)
         )
-        df_ = df_.loc[df_[target] != 0]
         save_pandas(
             df_,
             DATA_FOLDER_FBREF
             / season.folder
             / "training/players"
             / position
-            / f"{fname}.csv",
+            / f"player_{stat}_features.csv",
         )
-    logger.info("Player model features saved for {}", target)
+    logger.info("Player model features saved for {}", stat)
 
 
 def get_players_training_data(season: Season) -> None:
@@ -104,43 +106,37 @@ def get_players_training_data(season: Season) -> None:
         data=df,
         season=season,
         cols_form=cols_form_for_xgoals,
-        target="npxg",
-        fname="player_xgoals_features",
+        stat="xgoals",
     )
     save_player_joined_df(
         data=df,
         season=season,
         cols_form=cols_form_for_xassists,
-        target="xa",
-        fname="player_xassists_features",
+        stat="xassists",
     )
     save_player_joined_df(
         data=df,
         season=season,
         cols_form=cols_form_for_xyc,
-        target="yellow_cards",
-        fname="player_xyc_features",
+        stat="xyc",
     )
     save_player_joined_df(
         data=df,
         season=season,
         cols_form=cols_form_for_xmins,
-        target="minutes",
-        fname="player_xmins_features",
+        stat="xmins",
     )
     save_player_joined_df(
         data=df,
         season=season,
         cols_form=cols_form_for_xsaves,
-        target="gk_saves",
-        fname="player_xsaves_features",
+        stat="xsaves",
     )
     save_player_joined_df(
         data=df,
         season=season,
         cols_form=cols_form_for_xpens,
-        target="pens_scored",
-        fname="player_xpens_features",
+        stat="xpens",
     )
 
 

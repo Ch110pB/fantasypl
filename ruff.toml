@@ -23,7 +23,6 @@ ignore = ["ANN101", "COM812", "D203", "D205", "D211", "D212", "D400",
 
 [lint.per-file-ignores]
 "__init__.py" = ["D104", "E402", "F401", "F403", "F811"]
-"save_helper.py" = ["ANN401"]
 
 [lint.isort]
 lines-after-imports = 2

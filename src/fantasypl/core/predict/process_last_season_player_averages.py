@@ -247,6 +247,15 @@ def build_stats(season: Season) -> None:  # noqa: PLR0914
     df_all_stats: pd.DataFrame = (
         pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
     )
+    df_all_stats["progressive_actions"] = (
+        df_all_stats["progressive_carries"] + df_all_stats["progressive_passes"]
+    )
+    df_all_stats["defensive_actions"] = (
+        df_all_stats["tackles_won"]
+        + df_all_stats["blocks"]
+        + df_all_stats["interceptions"]
+        + df_all_stats["clearances"]
+    )
     df_fpl_players = df_fpl_players.merge(
         df_all_stats, on="player", how="left", validate="1:1"
     )
