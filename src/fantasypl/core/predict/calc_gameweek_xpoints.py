@@ -68,7 +68,6 @@ def calc_xpoints(gameweek: int) -> None:
         / "predictions/player"
         / f"gameweek_{gameweek}/prediction_expected_stats.csv"
     )
-    df_expected_stats = df_expected_stats.drop(columns=["team"])
     df_fpl_players = df_fpl_players.merge(
         df_expected_stats, on="player", how="left", validate="1:m"
     )
@@ -99,6 +98,9 @@ def calc_xpoints(gameweek: int) -> None:
         + df_fpl_players["points_cs"]
         + df_fpl_players["points_goals_conceded"]
         + df_fpl_players["points_gk_saves"]
+    )
+    df_fpl_players["points"] = (
+        df_fpl_players["points"] * df_fpl_players["chance_of_playing_next_round"] / 100
     )
     save_pandas(
         df_fpl_players,

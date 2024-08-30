@@ -11,7 +11,7 @@ from fantasypl.config.models.season import Season, Seasons
 from fantasypl.utils.modeling_helper import (
     get_form_data,
     get_static_data,
-    get_teamgw_json_to_df,
+    get_team_gameweek_json_to_df,
 )
 from fantasypl.utils.save_helper import save_pandas
 
@@ -169,7 +169,7 @@ def get_features(season: Season) -> None:
         season: Season.
 
     """
-    team_df: pd.DataFrame = get_teamgw_json_to_df(season)
+    team_df: pd.DataFrame = get_team_gameweek_json_to_df(season)
     team_df["team"] = [team.fbref_id for team in team_df["team"]]
     team_df["opponent"] = [opponent.fbref_id for opponent in team_df["opponent"]]
 

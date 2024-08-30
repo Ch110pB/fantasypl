@@ -12,7 +12,7 @@ from fantasypl.config.constants.folder_config import (
     DATA_FOLDER_FPL,
     DATA_FOLDER_REF,
 )
-from fantasypl.config.constants.mapping_config import FBREF_LEAGUE_STRENGTH_DICT
+from fantasypl.config.constants.mapping_config import FBREF_LEAGUE_OPTA_STRENGTH_DICT
 from fantasypl.config.models.player import Player
 from fantasypl.config.models.season import Season, Seasons
 from fantasypl.utils.save_helper import save_pandas
@@ -85,8 +85,8 @@ def process_stat(  # noqa: PLR0917
             )
         df_stats[col] = df_stats.apply(
             lambda row, c=col: row[c]
-            * FBREF_LEAGUE_STRENGTH_DICT[row["country"] + "_" + row["comp_level"]]
-            / FBREF_LEAGUE_STRENGTH_DICT["eng ENG_1. Premier League"],
+                               * FBREF_LEAGUE_OPTA_STRENGTH_DICT[row["country"] + "_" + row["comp_level"]]
+                               / FBREF_LEAGUE_OPTA_STRENGTH_DICT["eng ENG_1. Premier League"],
             axis=1,
         )
         df_stats[col] = df_stats[col].mean()

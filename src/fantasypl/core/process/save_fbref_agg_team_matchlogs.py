@@ -71,7 +71,7 @@ def process_single_team(
         DATA_FOLDER_FBREF / season.folder / "team_matchlogs" / team_short_name
     )
 
-    df_teamgw: pd.DataFrame = reduce(
+    df_team_gw: pd.DataFrame = reduce(
         lambda left, right: left.merge(
             right,
             on="date",
@@ -206,15 +206,15 @@ def process_single_team(
     )
 
     team: Team = next(el for el in _list_teams if el.short_name == team_short_name)
-    df_teamgw["opponent"] = [
-        {t.fbref_name: t for t in _list_teams}.get(t) for t in df_teamgw["opponent"]
+    df_team_gw["opponent"] = [
+        {t.fbref_name: t for t in _list_teams}.get(t) for t in df_team_gw["opponent"]
     ]
-    df_teamgw = df_teamgw.sort_values(by="date", ascending=True)
+    df_team_gw = df_team_gw.sort_values(by="date", ascending=True)
     return [
         TeamGameweek.model_validate(
             {"team": team, "season": season.fbref_long_name, **row},
         ).model_dump()
-        for row in df_teamgw.to_dict(orient="records")
+        for row in df_team_gw.to_dict(orient="records")
     ]
 
 

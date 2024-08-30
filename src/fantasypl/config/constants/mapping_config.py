@@ -2,13 +2,13 @@
 Mapping dictionaries.
 
 Contains:
-- FBREF_LEAGUE_STRENGTH_DICT:
+- FBREF_LEAGUE_OPTA_STRENGTH_DICT:
         Dictionary containing league strengths of last season (Opta Power Rankings).
-- FBREF_POSITION_DICT:
+- FBREF_POSITION_MAPPING:
         Dictionary containing FBRef position to short_position mapping.
 """
 
-FBREF_LEAGUE_STRENGTH_DICT: dict[str, float] = {
+FBREF_LEAGUE_OPTA_STRENGTH_DICT: dict[str, float] = {
     "eng ENG_1. Premier League": 86.5,
     "es ESP_1. La Liga": 84.9,
     "ch SUI_1. Super Lg": 77.35,
@@ -39,7 +39,7 @@ FBREF_LEAGUE_STRENGTH_DICT: dict[str, float] = {
     "py PAR_1. Primera Div": 69.35,
 }
 
-FBREF_POSITION_DICT: dict[str, str] = {
+FBREF_POSITION_MAPPING: dict[str, str] = {
     "GK": "GK",
     "DF": "DF",
     "MF": "MF",

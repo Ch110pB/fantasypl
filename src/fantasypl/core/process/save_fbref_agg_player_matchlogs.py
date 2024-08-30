@@ -12,12 +12,12 @@ import rich.progress
 from loguru import logger
 
 from fantasypl.config.constants.folder_config import DATA_FOLDER_FBREF, DATA_FOLDER_REF
-from fantasypl.config.constants.mapping_config import FBREF_POSITION_DICT
+from fantasypl.config.constants.mapping_config import FBREF_POSITION_MAPPING
 from fantasypl.config.models.player import Player
 from fantasypl.config.models.player_gameweek import PlayerGameWeek
 from fantasypl.config.models.season import Season, Seasons
 from fantasypl.config.models.team import Team
-from fantasypl.utils.modeling_helper import get_fbref_teams, get_teamgw_json_to_df
+from fantasypl.utils.modeling_helper import get_fbref_teams, get_team_gameweek_json_to_df
 from fantasypl.utils.save_helper import save_json
 
 
@@ -81,7 +81,7 @@ def process_single_team(team: Team, season: Season) -> list[dict[str, PlayerGame
         match fl:
             case fl if "summary" in fl:
                 df_stats["short_position"] = (
-                    df_stats["position"].str.split(",").str[0].map(FBREF_POSITION_DICT)
+                    df_stats["position"].str.split(",").str[0].map(FBREF_POSITION_MAPPING)
                 )
                 df_stats = df_stats.rename(
                     columns={
@@ -187,7 +187,7 @@ def process_single_team(team: Team, season: Season) -> list[dict[str, PlayerGame
         ),
         [df_summary, df_passing, df_defense, df_misc, df_keeper],
     )
-    df_team_gw: pd.DataFrame = get_teamgw_json_to_df(season)
+    df_team_gw: pd.DataFrame = get_team_gameweek_json_to_df(season)
     df_team_gw["date"] = df_team_gw["date"].astype(str)
     df_dates: pd.DataFrame = df_team_gw.loc[
         df_team_gw["team"] == team, ["date", "venue"]

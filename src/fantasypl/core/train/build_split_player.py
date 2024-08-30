@@ -6,7 +6,7 @@ from loguru import logger
 from fantasypl.config.constants.folder_config import DATA_FOLDER_FBREF
 from fantasypl.config.models.season import Season, Seasons
 from fantasypl.utils.modeling_helper import (
-    get_teamgw_json_to_df,
+    get_team_gameweek_json_to_df,
     preprocess_data_and_save,
 )
 
@@ -35,7 +35,7 @@ def build_split_player(
         / f"player_{target_name}_features.csv",
     )
     if target_name == "xsaves":
-        team_df: pd.DataFrame = get_teamgw_json_to_df(season)
+        team_df: pd.DataFrame = get_team_gameweek_json_to_df(season)
         team_df["team"] = [team.fbref_id for team in team_df["team"]]
         team_df["date"] = team_df["date"].astype(str)
         team_df = team_df[["team", "date", "npxg_vs"]]

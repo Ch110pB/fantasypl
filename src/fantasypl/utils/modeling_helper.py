@@ -20,7 +20,7 @@ from fantasypl.config.models.team_gameweek import TeamGameweek
 from fantasypl.utils.save_helper import save_pkl
 
 
-def get_teamgw_json_to_df(season: Season) -> pd.DataFrame:
+def get_team_gameweek_json_to_df(season: Season) -> pd.DataFrame:
     """
     Args:
     ----
@@ -190,10 +190,10 @@ def preprocess_data_and_save(  # noqa: PLR0917
             MODEL_FOLDER / folder / f"model_{team_or_player}_{target_name}/{key}.pkl"
         )
         save_pkl(value, fpath)
-    fpath_proc: Path = (
+    fpath_preproc: Path = (
         MODEL_FOLDER / folder / f"model_{team_or_player}_{target_name}/preprocessor.pkl"
     )
-    save_pkl(obj=preprocessor, fpath=fpath_proc)
+    save_pkl(obj=preprocessor, fpath=fpath_preproc)
 
 
 def get_train_test_data(
