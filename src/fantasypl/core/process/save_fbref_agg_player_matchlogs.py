@@ -17,7 +17,10 @@ from fantasypl.config.models.player import Player
 from fantasypl.config.models.player_gameweek import PlayerGameWeek
 from fantasypl.config.models.season import Season, Seasons
 from fantasypl.config.models.team import Team
-from fantasypl.utils.modeling_helper import get_fbref_teams, get_team_gameweek_json_to_df
+from fantasypl.utils.modeling_helper import (
+    get_fbref_teams,
+    get_team_gameweek_json_to_df,
+)
 from fantasypl.utils.save_helper import save_json
 
 
@@ -81,7 +84,10 @@ def process_single_team(team: Team, season: Season) -> list[dict[str, PlayerGame
         match fl:
             case fl if "summary" in fl:
                 df_stats["short_position"] = (
-                    df_stats["position"].str.split(",").str[0].map(FBREF_POSITION_MAPPING)
+                    df_stats["position"]
+                    .str.split(",")
+                    .str[0]
+                    .map(FBREF_POSITION_MAPPING)
                 )
                 df_stats = df_stats.rename(
                     columns={

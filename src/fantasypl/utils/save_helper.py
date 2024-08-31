@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+import requests
 
 
 def save_json(
@@ -50,3 +51,17 @@ def save_pkl(obj: Any, fpath: Path, protocol: int | None = None) -> None:  # noq
     Path.mkdir(fpath.parent, parents=True, exist_ok=True)
     with Path.open(fpath, "wb") as f:
         pickle.dump(obj, f, protocol=protocol)
+
+
+def save_requests_response(response: requests.Response, fpath: Path) -> None:
+    """
+
+    Args:
+    ----
+        response: Response from URL.
+        fpath: The path to save in.
+
+    """
+    Path.mkdir(fpath.parent, parents=True, exist_ok=True)
+    with Path.open(fpath, "wb") as f:
+        f.write(response.content)

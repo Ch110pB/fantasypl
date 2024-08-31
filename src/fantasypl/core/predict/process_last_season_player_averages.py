@@ -85,8 +85,8 @@ def process_stat(  # noqa: PLR0917
             )
         df_stats[col] = df_stats.apply(
             lambda row, c=col: row[c]
-                               * FBREF_LEAGUE_OPTA_STRENGTH_DICT[row["country"] + "_" + row["comp_level"]]
-                               / FBREF_LEAGUE_OPTA_STRENGTH_DICT["eng ENG_1. Premier League"],
+            * FBREF_LEAGUE_OPTA_STRENGTH_DICT[row["country"] + "_" + row["comp_level"]]
+            / FBREF_LEAGUE_OPTA_STRENGTH_DICT["eng ENG_1. Premier League"],
             axis=1,
         )
         df_stats[col] = df_stats[col].mean()
