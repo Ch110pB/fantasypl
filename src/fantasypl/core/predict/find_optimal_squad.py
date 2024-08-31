@@ -132,7 +132,7 @@ def find_squad(  # noqa: PLR0914
     positions: npt.NDArray[np.str_] = df_values["fpl_position"].to_numpy()
     teams: npt.NDArray[np.str_] = df_values["team"].to_numpy()
 
-    problem: pulp.LpProblem = pulp.LpProblem("Squad_Building", pulp.LpMaximize)
+    problem: pulp.LpProblem = pulp.LpProblem("squad_building", pulp.LpMaximize)
 
     lineup: npt.NDArray[pulp.LpVariable] = np.array([
         pulp.LpVariable(f"l{pl}", cat=pulp.LpBinary) for pl in players
@@ -200,6 +200,9 @@ def find_squad(  # noqa: PLR0914
         club_mask: npt.NDArray[np.bool] = np.array(teams == club)
         problem.addConstraint(club_mask @ (lineup + bench) <= MAX_SAME_CLUB_COUNT)
 
+    problem.writeLP(
+        f"{MODEL_FOLDER}/predictions/player/gameweek_{gameweek}/{problem.name}.lp"
+    )
     problem.solve()
     optimal_lineup: npt.NDArray[np.float32] = np.array([
         pulp.value(var) for var in lineup
