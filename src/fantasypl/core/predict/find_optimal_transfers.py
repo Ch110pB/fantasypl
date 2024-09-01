@@ -28,7 +28,6 @@ from fantasypl.config.constants.prediction_config import (
     MIN_FWD_COUNT,
     MIN_GKP_COUNT,
     MIN_MID_COUNT,
-    TOTAL_BENCH_COUNT,
     TOTAL_DEF_COUNT,
     TOTAL_FWD_COUNT,
     TOTAL_GKP_COUNT,
@@ -148,14 +147,16 @@ def prepare_data_for_current_team(
 
 # noinspection DuplicatedCode
 def find_optimal_transfers(  # noqa: PLR0914, PLR0915
-    gameweek: int, bench_weight: float = 0.21, transfer_penalty_percentile: int = 77
+    gameweek: int,
+    bench_weights: list[float] | None = None,
+    transfer_penalty_percentile: int | None = None,
 ) -> tuple[list[str], list[str], str, list[str], list[str], list[str]]:
     """
 
     Args:
     ----
         gameweek: Gameweek.
-        bench_weight: Weight given to points of bench players.
+        bench_weights: Weights given to points of bench players.
         transfer_penalty_percentile:
                 Transfer penalty on additional hits
                 (-4 is the value in official FPL).
@@ -197,8 +198,17 @@ def find_optimal_transfers(  # noqa: PLR0914, PLR0915
     lineup: npt.NDArray[pulp.LpVariable] = np.array([
         pulp.LpVariable(f"l{pl}", cat=pulp.LpBinary) for pl in players
     ])
-    bench: npt.NDArray[pulp.LpVariable] = np.array([
-        pulp.LpVariable(f"b{pl}", cat=pulp.LpBinary) for pl in players
+    bench_gk: npt.NDArray[pulp.LpVariable] = np.array([
+        pulp.LpVariable(f"bg{pl}", cat=pulp.LpBinary) for pl in players
+    ])
+    bench_1: npt.NDArray[pulp.LpVariable] = np.array([
+        pulp.LpVariable(f"bf{pl}", cat=pulp.LpBinary) for pl in players
+    ])
+    bench_2: npt.NDArray[pulp.LpVariable] = np.array([
+        pulp.LpVariable(f"bs{pl}", cat=pulp.LpBinary) for pl in players
+    ])
+    bench_3: npt.NDArray[pulp.LpVariable] = np.array([
+        pulp.LpVariable(f"bt{pl}", cat=pulp.LpBinary) for pl in players
     ])
     captain: npt.NDArray[pulp.LpVariable] = np.array([
         pulp.LpVariable(f"c{pl}", cat=pulp.LpBinary) for pl in players
@@ -216,16 +226,29 @@ def find_optimal_transfers(  # noqa: PLR0914, PLR0915
         pulp.LpVariable(f"hit{pl}", cat=pulp.LpBinary) for pl in players
     ])
 
+    if bench_weights is None:
+        bench_weights = [0.03, 0.21, 0.1, 0.002]
+    if transfer_penalty_percentile is None:
+        transfer_penalty_percentile = 77
+
     problem.setObjective(
         points @ (lineup + captain)
-        + (bench_weight * points) @ bench
+        + (bench_weights[0] * points) @ bench_gk
+        + (bench_weights[1] * points) @ bench_1
+        + (bench_weights[2] * points) @ bench_2
+        + (bench_weights[3] * points) @ bench_3
         - scoreatpercentile(points, transfer_penalty_percentile) * sum(transfers_in_hit)
     )
     problem.addConstraint(sum(lineup) == TOTAL_LINEUP_COUNT)
-    problem.addConstraint(sum(bench) == TOTAL_BENCH_COUNT)
+    problem.addConstraint(sum(bench_gk) == 1)
+    problem.addConstraint(sum(bench_1) == 1)
+    problem.addConstraint(sum(bench_2) == 1)
+    problem.addConstraint(sum(bench_3) == 1)
     problem.addConstraint(sum(captain) == 1)
 
-    sub_not_in_lineup_expressions: npt.NDArray[pulp.LpVariable] = lineup + bench
+    sub_not_in_lineup_expressions: npt.NDArray[pulp.LpVariable] = (
+        lineup + bench_gk + bench_1 + bench_2 + bench_3
+    )
     for expr in sub_not_in_lineup_expressions:
         problem.addConstraint(expr <= 1)
     capt_in_lineup_expressions: npt.NDArray[pulp.LpVariable] = lineup - captain
@@ -236,7 +259,7 @@ def find_optimal_transfers(  # noqa: PLR0914, PLR0915
         problem,
         np.array(positions == "GKP"),
         lineup,
-        bench,
+        [bench_gk],
         MIN_GKP_COUNT,
         MAX_GKP_COUNT,
         TOTAL_GKP_COUNT,
@@ -245,7 +268,7 @@ def find_optimal_transfers(  # noqa: PLR0914, PLR0915
         problem,
         np.array(positions == "DEF"),
         lineup,
-        bench,
+        [bench_1, bench_2, bench_3],
         MIN_DEF_COUNT,
         MAX_DEF_COUNT,
         TOTAL_DEF_COUNT,
@@ -254,7 +277,7 @@ def find_optimal_transfers(  # noqa: PLR0914, PLR0915
         problem,
         np.array(positions == "MID"),
         lineup,
-        bench,
+        [bench_1, bench_2, bench_3],
         MIN_MID_COUNT,
         MAX_MID_COUNT,
         TOTAL_MID_COUNT,
@@ -263,7 +286,7 @@ def find_optimal_transfers(  # noqa: PLR0914, PLR0915
         problem,
         np.array(positions == "FWD"),
         lineup,
-        bench,
+        [bench_1, bench_2, bench_3],
         MIN_FWD_COUNT,
         MAX_FWD_COUNT,
         TOTAL_FWD_COUNT,
@@ -271,7 +294,10 @@ def find_optimal_transfers(  # noqa: PLR0914, PLR0915
 
     for club in np.unique(teams):
         club_mask: npt.NDArray[np.bool] = np.array(teams == club)
-        problem.addConstraint(club_mask @ (lineup + bench) <= MAX_SAME_CLUB_COUNT)
+        problem.addConstraint(
+            club_mask @ (lineup + bench_gk + bench_1 + bench_2 + bench_3)
+            <= MAX_SAME_CLUB_COUNT
+        )
 
     current_team: set[int] = {_id_to_code_dict[el] for el in _current_team}
     for i in range(len(players)):
@@ -295,7 +321,10 @@ def find_optimal_transfers(  # noqa: PLR0914, PLR0915
         problem.addConstraint(expr <= 1)
     transfer_zero_sum_expressions: npt.NDArray[pulp.LpVariable] = (
         lineup
-        + bench
+        + bench_gk
+        + bench_1
+        + bench_2
+        + bench_3
         + transfers_out
         - initial_squad
         - transfers_in_hit
@@ -312,8 +341,17 @@ def find_optimal_transfers(  # noqa: PLR0914, PLR0915
     optimal_lineup: npt.NDArray[np.float32] = np.array([
         pulp.value(var) for var in lineup
     ])
-    optimal_bench: npt.NDArray[np.float32] = np.array([
-        pulp.value(var) for var in bench
+    optimal_bench_gk: npt.NDArray[np.float32] = np.array([
+        pulp.value(var) for var in bench_gk
+    ])
+    optimal_bench_1: npt.NDArray[np.float32] = np.array([
+        pulp.value(var) for var in bench_1
+    ])
+    optimal_bench_2: npt.NDArray[np.float32] = np.array([
+        pulp.value(var) for var in bench_2
+    ])
+    optimal_bench_3: npt.NDArray[np.float32] = np.array([
+        pulp.value(var) for var in bench_3
     ])
     selected_players: list[str] = [
         v.name for v in problem.variables() if v.varValue == 1
@@ -321,9 +359,28 @@ def find_optimal_transfers(  # noqa: PLR0914, PLR0915
     lineup_players: list[str] = [
         el.fpl_web_name for el in _list_players if f"l{el.fpl_code}" in selected_players
     ]
-    bench_players: list[str] = [
-        el.fpl_web_name for el in _list_players if f"b{el.fpl_code}" in selected_players
-    ]
+    bench_players: list[str] = (
+        [
+            el.fpl_web_name
+            for el in _list_players
+            if f"bg{el.fpl_code}" in selected_players
+        ]
+        + [
+            el.fpl_web_name
+            for el in _list_players
+            if f"bf{el.fpl_code}" in selected_players
+        ]
+        + [
+            el.fpl_web_name
+            for el in _list_players
+            if f"bs{el.fpl_code}" in selected_players
+        ]
+        + [
+            el.fpl_web_name
+            for el in _list_players
+            if f"bt{el.fpl_code}" in selected_players
+        ]
+    )
     captain_player: str = next(
         el.fpl_web_name for el in _list_players if f"c{el.fpl_code}" in selected_players
     )
@@ -345,7 +402,17 @@ def find_optimal_transfers(  # noqa: PLR0914, PLR0915
 
     logger.info("Optimization complete for fresh squad.")
     logger.info("Predicted Lineup Points: {}", optimal_lineup @ points)
-    logger.info("Total Cost: {}", optimal_lineup @ prices + optimal_bench @ prices)
+    logger.info(
+        "Total Cost: {}",
+        (
+            optimal_lineup
+            + optimal_bench_gk
+            + optimal_bench_1
+            + optimal_bench_2
+            + optimal_bench_3
+        )
+        @ prices,
+    )
     return (
         lineup_players,
         bench_players,

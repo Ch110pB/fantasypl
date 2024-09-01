@@ -1,6 +1,8 @@
 """Helper functions for current season predictions."""
 
 import json
+import operator
+from functools import reduce
 from pathlib import Path
 
 import numpy as np
@@ -122,7 +124,7 @@ def add_position_constraints(  # noqa: PLR0917
     problem: pulp.LpProblem,
     mask: npt.NDArray[np.bool],
     lineup: npt.NDArray[pulp.LpVariable],
-    bench: npt.NDArray[pulp.LpVariable],
+    bench: list[npt.NDArray[pulp.LpVariable]],
     min_count: int,
     max_count: int,
     total_count: int,
@@ -134,7 +136,7 @@ def add_position_constraints(  # noqa: PLR0917
         problem: LP problem.
         mask: Position mask.
         lineup: Lineup array.
-        bench: Bench array.
+        bench: Bench arrays.
         min_count: Minimum count for position.
         max_count: Maximum count for position.
         total_count: Total count for position.
@@ -146,5 +148,5 @@ def add_position_constraints(  # noqa: PLR0917
     """
     problem.addConstraint(mask @ lineup >= min_count)
     problem.addConstraint(mask @ lineup <= max_count)
-    problem.addConstraint(mask @ (lineup + bench) == total_count)
+    problem.addConstraint(mask @ (lineup + reduce(operator.add, bench)) == total_count)
     return problem
