@@ -37,6 +37,8 @@ FBREF_LEAGUE_OPTA_STRENGTH_DICT: dict[str, float] = {
     "nl NED_2. Eerste Divisie": 64.85,
     "at AUT_1. Bundesliga": 75.5,
     "py PAR_1. Primera Div": 69.35,
+    "pl POL_1. Ekstraklasa": 75.3,
+    "sct SCO_2. Championship": 62.05,
 }
 
 FBREF_POSITION_MAPPING: dict[str, str] = {
