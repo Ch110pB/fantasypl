@@ -2,10 +2,10 @@
 
 import json
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
 import numpy.typing as npt
-import pandas as pd
 import pulp  # type: ignore[import-untyped]
 from loguru import logger
 
@@ -28,6 +28,14 @@ from fantasypl.config.constants.prediction_config import (
     TOTAL_MID_COUNT,
 )
 from fantasypl.config.models.player import Player
+from fantasypl.utils.prediction_helper import (
+    add_position_constraints,
+    prepare_df_for_optimization,
+)
+
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 
 with Path.open(DATA_FOLDER_REF / "players.json", "r") as fl:
@@ -36,79 +44,7 @@ with Path.open(DATA_FOLDER_REF / "players.json", "r") as fl:
     ]
 
 
-def prepare_df_for_optimization(gameweek: int) -> pd.DataFrame:
-    """
-
-    Args:
-    ----
-        gameweek: Gameweek.
-
-    Returns:
-    -------
-        A dataframe containing the features for the optimization problem.
-
-    """
-    df_expected_points: pd.DataFrame = pd.read_csv(
-        MODEL_FOLDER
-        / "predictions/player"
-        / f"gameweek_{gameweek}"
-        / "prediction_xpoints.csv"
-    )
-    df_expected_points = df_expected_points[
-        ["code", "fpl_position", "team", "gameweek", "now_cost", "points"]
-    ]
-    df_expected_points["weighted_points"] = df_expected_points[
-        "points"
-    ] * df_expected_points["gameweek"].map({
-        gameweek: 1.0,
-        gameweek + 1: 0.84,
-        gameweek + 2: 0.84**2,
-    })
-    df_values = (
-        df_expected_points.groupby([
-            "code",
-            "team",
-            "fpl_position",
-            "now_cost",
-        ])["weighted_points"]
-        .sum()
-        .reset_index()
-    )
-    return df_values.sort_values(by="code", ascending=True)
-
-
-def add_position_constraints(  # noqa: PLR0917
-    problem: pulp.LpProblem,
-    mask: npt.NDArray[np.bool],
-    lineup: npt.NDArray[pulp.LpVariable],
-    bench: npt.NDArray[pulp.LpVariable],
-    min_count: int,
-    max_count: int,
-    total_count: int,
-) -> pulp.LpProblem:
-    """
-
-    Args:
-    ----
-        problem: LP problem.
-        mask: Position mask.
-        lineup: Lineup array.
-        bench: Bench array.
-        min_count: Minimum count for position.
-        max_count: Maximum count for position.
-        total_count: Total count for position.
-
-    Returns:
-    -------
-        The LP problem with positional constraints.
-
-    """
-    problem.addConstraint(mask @ lineup >= min_count)
-    problem.addConstraint(mask @ lineup <= max_count)
-    problem.addConstraint(mask @ (lineup + bench) == total_count)
-    return problem
-
-
+# noinspection DuplicatedCode
 def find_squad(  # noqa: PLR0914
     gameweek: int, budget: int, bench_weight: float = 0.21
 ) -> tuple[list[str], list[str], str]:
@@ -196,7 +132,7 @@ def find_squad(  # noqa: PLR0914
         TOTAL_FWD_COUNT,
     )
 
-    for club in df_values["team"].unique():
+    for club in np.unique(teams):
         club_mask: npt.NDArray[np.bool] = np.array(teams == club)
         problem.addConstraint(club_mask @ (lineup + bench) <= MAX_SAME_CLUB_COUNT)
 

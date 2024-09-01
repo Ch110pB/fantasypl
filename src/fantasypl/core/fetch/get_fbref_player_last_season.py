@@ -117,5 +117,5 @@ def get_player_season(season: Season, filter_players: list[str] | None = None) -
 if __name__ == "__main__":
     get_player_season(
         Seasons.SEASON_2324.value,
-        filter_players=["dcd94cdb", "e504780f", "f7042636", "b0f7e36c"],
+        filter_players=["ec604e2c", "a42f6058", "d1a2e006", "b85c3273"],
     )

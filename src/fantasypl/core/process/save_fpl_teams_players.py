@@ -29,6 +29,7 @@ _cols_players: list[str] = [
     "news",
     "news_added",
     "selected_by_percent",
+    "cost_change_start",
 ]
 
 

@@ -3,6 +3,7 @@
 import pandas as pd
 import requests
 import rich.progress
+from loguru import logger
 
 from fantasypl.config.constants.folder_config import DATA_FOLDER_FPL, RESOURCE_FOLDER
 from fantasypl.config.constants.web_config import FPL_SHIRTS_URL
@@ -27,6 +28,7 @@ def get_shirts(season: Season) -> None:
         save_requests_response(
             response, RESOURCE_FOLDER / season.folder / f"shirt_{code}.png"
         )
+    logger.info("All shirt graphics downloaded.")
 
 
 if __name__ == "__main__":
