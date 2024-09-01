@@ -84,7 +84,15 @@ def prepare_df_for_optimization(gameweek: int) -> pd.DataFrame:
         / "prediction_xpoints.csv"
     )
     df_expected_points = df_expected_points[
-        ["code", "fpl_position", "team", "gameweek", "now_cost", "points"]
+        [
+            "code",
+            "fpl_position",
+            "team",
+            "gameweek",
+            "now_cost",
+            "points",
+            "selected_by_percent",
+        ]
     ]
     df_expected_points["weighted_points"] = df_expected_points[
         "points"
@@ -99,9 +107,13 @@ def prepare_df_for_optimization(gameweek: int) -> pd.DataFrame:
             "team",
             "fpl_position",
             "now_cost",
+            "selected_by_percent",
         ])["weighted_points"]
         .sum()
         .reset_index()
+    )
+    df_values["weighted_points"] = df_values["weighted_points"].round(4) + (
+        (100 - df_values["selected_by_percent"]) * 1e-6
     )
     return df_values.sort_values(by="code", ascending=True)
 
