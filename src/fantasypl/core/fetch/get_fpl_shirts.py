@@ -28,6 +28,11 @@ def get_shirts(season: Season) -> None:
         save_requests_response(
             response, RESOURCE_FOLDER / season.folder / f"shirt_{code}.png"
         )
+        url: str = f"{FPL_SHIRTS_URL}/shirt_{code}_1-220.png"
+        response: requests.Response = requests.get(url)
+        save_requests_response(
+            response, RESOURCE_FOLDER / season.folder / f"shirt_{code}_gk.png"
+        )
     logger.info("All shirt graphics downloaded.")
 
 
