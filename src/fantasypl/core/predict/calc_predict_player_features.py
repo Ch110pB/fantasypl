@@ -251,7 +251,7 @@ def predict_for_stat(
 
 
 if __name__ == "__main__":
-    gw = 3
+    gw = 4
     df_features: pd.DataFrame = build_predict_features(Seasons.SEASON_2425.value, gw)
     for pos_ in ["GK"]:
         predict_for_stat(df_features, pos_, "xsaves", gw)

@@ -89,4 +89,4 @@ def get_gw_matches(season: Season, gameweek: int) -> None:
 
 
 if __name__ == "__main__":
-    get_gw_matches(Seasons.SEASON_2425.value, 3)
+    get_gw_matches(Seasons.SEASON_2425.value, 4)

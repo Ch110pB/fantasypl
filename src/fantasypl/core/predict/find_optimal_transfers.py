@@ -4,10 +4,8 @@ import copy
 import json
 from collections import Counter
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import numpy as np
-import numpy.typing as npt
 import pandas as pd
 import pulp  # type: ignore[import-untyped]
 from loguru import logger
@@ -19,27 +17,27 @@ from fantasypl.config.constants.folder_config import (
     MODEL_FOLDER,
 )
 from fantasypl.config.constants.prediction_config import (
-    MAX_DEF_COUNT,
-    MAX_FWD_COUNT,
-    MAX_GKP_COUNT,
-    MAX_MID_COUNT,
-    MAX_SAME_CLUB_COUNT,
-    MIN_DEF_COUNT,
-    MIN_FWD_COUNT,
-    MIN_GKP_COUNT,
-    MIN_MID_COUNT,
-    TOTAL_DEF_COUNT,
-    TOTAL_FWD_COUNT,
-    TOTAL_GKP_COUNT,
-    TOTAL_LINEUP_COUNT,
-    TOTAL_MID_COUNT,
+    BENCH_WEIGHTS_ARRAY,
+    TRANSFER_GAIN_MINIMUM,
+    TRANSFER_HIT_PENALTY_PERCENTILE,
+    WEIGHTS_DECAYS_BASE,
 )
 from fantasypl.config.models.player import Player
 from fantasypl.config.models.season import Season, Seasons
 from fantasypl.utils.prediction_helper import (
-    add_position_constraints,
+    add_count_constraints,
+    add_other_constraints,
+    arrange_return_and_log_variables,
+    prepare_additional_lpvariables,
+    prepare_common_lists_from_df,
     prepare_df_for_optimization,
+    prepare_lp_variables,
 )
+
+
+if TYPE_CHECKING:
+    import numpy as np
+    import numpy.typing as npt
 
 
 current_season: Season = Seasons.SEASON_2425.value
@@ -145,11 +143,12 @@ def prepare_data_for_current_team(
     )
 
 
-# noinspection DuplicatedCode
-def find_optimal_transfers(  # noqa: PLR0914, PLR0915
+def find_optimal_transfers(  # noqa: PLR0914
     gameweek: int,
     bench_weights: list[float] | None = None,
-    transfer_penalty_percentile: int | None = None,
+    weights_decays_base: list[float] | None = None,
+    transfer_penalty_percentile: float | None = None,
+    transfer_gain_minimum: float | None = None,
 ) -> tuple[list[str], list[str], str, list[str], list[str], list[str]]:
     """
 
@@ -157,9 +156,11 @@ def find_optimal_transfers(  # noqa: PLR0914, PLR0915
     ----
         gameweek: Gameweek.
         bench_weights: Weights given to points of bench players.
+        weights_decays_base: Per GW decay for predicted points.
         transfer_penalty_percentile:
-                Transfer penalty on additional hits
-                (-4 is the value in official FPL).
+                Transfer penalty on additional hits as percentile of predictions.
+        transfer_gain_minimum: Minimum points gain to warrant a transfer.
+
 
     Returns:
     -------
@@ -175,8 +176,16 @@ def find_optimal_transfers(  # noqa: PLR0914, PLR0915
     _id_to_code_dict: dict[int, int] = (
         df_fpl[["id", "code"]].set_index("id").to_dict()["code"]
     )
+    if weights_decays_base is None:
+        weights_decays_base = WEIGHTS_DECAYS_BASE
+    if bench_weights is None:
+        bench_weights = BENCH_WEIGHTS_ARRAY
+    if transfer_penalty_percentile is None:
+        transfer_penalty_percentile = TRANSFER_HIT_PENALTY_PERCENTILE
+    if transfer_gain_minimum is None:
+        transfer_gain_minimum = TRANSFER_GAIN_MINIMUM
 
-    df_values: pd.DataFrame = prepare_df_for_optimization(gameweek)
+    df_values: pd.DataFrame = prepare_df_for_optimization(gameweek, weights_decays_base)
     df_values["id"] = df_values["code"].map(_code_to_id_dict)
 
     dict_buy_prices, dict_sell_prices, _current_team, itb, free_transfers = (
@@ -185,51 +194,16 @@ def find_optimal_transfers(  # noqa: PLR0914, PLR0915
     df_values["buy_price"] = df_values["id"].map(dict_buy_prices)
     df_values["sell_price"] = df_values["id"].map(dict_sell_prices)
 
-    players: npt.NDArray[np.int32] = df_values["code"].to_numpy()
-    points: npt.NDArray[np.float32] = df_values["weighted_points"].to_numpy()
-    prices: npt.NDArray[np.int32] = df_values["now_cost"].to_numpy()
-    positions: npt.NDArray[np.str_] = df_values["fpl_position"].to_numpy()
-    teams: npt.NDArray[np.str_] = df_values["team"].to_numpy()
+    players, points, prices, positions, teams = prepare_common_lists_from_df(df_values)
     buy_prices: npt.NDArray[np.int32] = df_values["buy_price"].to_numpy()
     sell_prices: npt.NDArray[np.int32] = df_values["sell_price"].to_numpy()
 
     problem: pulp.LpProblem = pulp.LpProblem("transfers", pulp.LpMaximize)
 
-    lineup: npt.NDArray[pulp.LpVariable] = np.array([
-        pulp.LpVariable(f"l{pl}", cat=pulp.LpBinary) for pl in players
-    ])
-    bench_gk: npt.NDArray[pulp.LpVariable] = np.array([
-        pulp.LpVariable(f"bg{pl}", cat=pulp.LpBinary) for pl in players
-    ])
-    bench_1: npt.NDArray[pulp.LpVariable] = np.array([
-        pulp.LpVariable(f"bf{pl}", cat=pulp.LpBinary) for pl in players
-    ])
-    bench_2: npt.NDArray[pulp.LpVariable] = np.array([
-        pulp.LpVariable(f"bs{pl}", cat=pulp.LpBinary) for pl in players
-    ])
-    bench_3: npt.NDArray[pulp.LpVariable] = np.array([
-        pulp.LpVariable(f"bt{pl}", cat=pulp.LpBinary) for pl in players
-    ])
-    captain: npt.NDArray[pulp.LpVariable] = np.array([
-        pulp.LpVariable(f"c{pl}", cat=pulp.LpBinary) for pl in players
-    ])
-    initial_squad: npt.NDArray[pulp.LpVariable] = np.array([
-        pulp.LpVariable(f"sq{pl}", cat=pulp.LpBinary) for pl in players
-    ])
-    transfers_out: npt.NDArray[pulp.LpVariable] = np.array([
-        pulp.LpVariable(f"out{pl}", cat=pulp.LpBinary) for pl in players
-    ])
-    transfers_in_free: npt.NDArray[pulp.LpVariable] = np.array([
-        pulp.LpVariable(f"ft{pl}", cat=pulp.LpBinary) for pl in players
-    ])
-    transfers_in_hit: npt.NDArray[pulp.LpVariable] = np.array([
-        pulp.LpVariable(f"hit{pl}", cat=pulp.LpBinary) for pl in players
-    ])
-
-    if bench_weights is None:
-        bench_weights = [0.03, 0.21, 0.1, 0.002]
-    if transfer_penalty_percentile is None:
-        transfer_penalty_percentile = 77
+    lineup, bench_gk, bench_1, bench_2, bench_3, captain = prepare_lp_variables(players)
+    initial_squad, transfers_out, transfers_in_free, transfers_in_hit = (
+        prepare_additional_lpvariables(players)
+    )
 
     problem.setObjective(
         points @ (lineup + captain)
@@ -239,65 +213,12 @@ def find_optimal_transfers(  # noqa: PLR0914, PLR0915
         + (bench_weights[3] * points) @ bench_3
         - scoreatpercentile(points, transfer_penalty_percentile) * sum(transfers_in_hit)
     )
-    problem.addConstraint(sum(lineup) == TOTAL_LINEUP_COUNT)
-    problem.addConstraint(sum(bench_gk) == 1)
-    problem.addConstraint(sum(bench_1) == 1)
-    problem.addConstraint(sum(bench_2) == 1)
-    problem.addConstraint(sum(bench_3) == 1)
-    problem.addConstraint(sum(captain) == 1)
-
-    sub_not_in_lineup_expressions: npt.NDArray[pulp.LpVariable] = (
-        lineup + bench_gk + bench_1 + bench_2 + bench_3
+    problem = add_count_constraints(
+        problem, lineup, bench_gk, bench_1, bench_2, bench_3, captain
     )
-    for expr in sub_not_in_lineup_expressions:
-        problem.addConstraint(expr <= 1)
-    capt_in_lineup_expressions: npt.NDArray[pulp.LpVariable] = lineup - captain
-    for expr in capt_in_lineup_expressions:
-        problem.addConstraint(expr >= 0)
-
-    problem = add_position_constraints(
-        problem,
-        np.array(positions == "GKP"),
-        lineup,
-        [bench_gk],
-        MIN_GKP_COUNT,
-        MAX_GKP_COUNT,
-        TOTAL_GKP_COUNT,
+    problem = add_other_constraints(
+        problem, lineup, bench_gk, bench_1, bench_2, bench_3, captain, positions, teams
     )
-    problem = add_position_constraints(
-        problem,
-        np.array(positions == "DEF"),
-        lineup,
-        [bench_1, bench_2, bench_3],
-        MIN_DEF_COUNT,
-        MAX_DEF_COUNT,
-        TOTAL_DEF_COUNT,
-    )
-    problem = add_position_constraints(
-        problem,
-        np.array(positions == "MID"),
-        lineup,
-        [bench_1, bench_2, bench_3],
-        MIN_MID_COUNT,
-        MAX_MID_COUNT,
-        TOTAL_MID_COUNT,
-    )
-    problem = add_position_constraints(
-        problem,
-        np.array(positions == "FWD"),
-        lineup,
-        [bench_1, bench_2, bench_3],
-        MIN_FWD_COUNT,
-        MAX_FWD_COUNT,
-        TOTAL_FWD_COUNT,
-    )
-
-    for club in np.unique(teams):
-        club_mask: npt.NDArray[np.bool] = np.array(teams == club)
-        problem.addConstraint(
-            club_mask @ (lineup + bench_gk + bench_1 + bench_2 + bench_3)
-            <= MAX_SAME_CLUB_COUNT
-        )
 
     current_team: set[int] = {_id_to_code_dict[el] for el in _current_team}
     for i in range(len(players)):
@@ -307,6 +228,11 @@ def find_optimal_transfers(  # noqa: PLR0914, PLR0915
     problem.addConstraint(
         sell_prices @ transfers_out + itb
         >= buy_prices @ (transfers_in_free + transfers_in_hit)
+    )
+    problem.addConstraint(
+        points @ (lineup + bench_gk + bench_1 + bench_2 + bench_3)
+        - points @ initial_squad
+        >= transfer_gain_minimum
     )
 
     transfer_out_in_squad_expressions: npt.NDArray[pulp.LpVariable] = (
@@ -337,53 +263,21 @@ def find_optimal_transfers(  # noqa: PLR0914, PLR0915
         f"{MODEL_FOLDER}/predictions/player/gameweek_{gameweek}/{problem.name}.lp"
     )
     problem.solve()
-
-    optimal_lineup: npt.NDArray[np.float32] = np.array([
-        pulp.value(var) for var in lineup
-    ])
-    optimal_bench_gk: npt.NDArray[np.float32] = np.array([
-        pulp.value(var) for var in bench_gk
-    ])
-    optimal_bench_1: npt.NDArray[np.float32] = np.array([
-        pulp.value(var) for var in bench_1
-    ])
-    optimal_bench_2: npt.NDArray[np.float32] = np.array([
-        pulp.value(var) for var in bench_2
-    ])
-    optimal_bench_3: npt.NDArray[np.float32] = np.array([
-        pulp.value(var) for var in bench_3
-    ])
+    (
+        optimal_lineup,
+        lineup_players,
+        optimal_bench_gk,
+        optimal_bench_1,
+        optimal_bench_2,
+        optimal_bench_3,
+        bench_players,
+        captain_player,
+    ) = arrange_return_and_log_variables(
+        problem, lineup, bench_gk, bench_1, bench_2, bench_3
+    )
     selected_players: list[str] = [
         v.name for v in problem.variables() if v.varValue == 1
     ]
-    lineup_players: list[str] = [
-        el.fpl_web_name for el in _list_players if f"l{el.fpl_code}" in selected_players
-    ]
-    bench_players: list[str] = (
-        [
-            el.fpl_web_name
-            for el in _list_players
-            if f"bg{el.fpl_code}" in selected_players
-        ]
-        + [
-            el.fpl_web_name
-            for el in _list_players
-            if f"bf{el.fpl_code}" in selected_players
-        ]
-        + [
-            el.fpl_web_name
-            for el in _list_players
-            if f"bs{el.fpl_code}" in selected_players
-        ]
-        + [
-            el.fpl_web_name
-            for el in _list_players
-            if f"bt{el.fpl_code}" in selected_players
-        ]
-    )
-    captain_player: str = next(
-        el.fpl_web_name for el in _list_players if f"c{el.fpl_code}" in selected_players
-    )
     transfers_out_players: list[str] = [
         el.fpl_web_name
         for el in _list_players

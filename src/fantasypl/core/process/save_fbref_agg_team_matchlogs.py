@@ -246,5 +246,5 @@ def save_aggregate_team_matchlogs(
 
 
 if __name__ == "__main__":
-    save_aggregate_team_matchlogs(Seasons.SEASON_2324)
+    # save_aggregate_team_matchlogs(Seasons.SEASON_2324)
     save_aggregate_team_matchlogs(Seasons.SEASON_2425)

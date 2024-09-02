@@ -113,4 +113,4 @@ def calc_xpoints(gameweek: int) -> None:
 
 
 if __name__ == "__main__":
-    calc_xpoints(3)
+    calc_xpoints(4)

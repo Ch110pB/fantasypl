@@ -163,7 +163,7 @@ def predict_for_stat(features: pd.DataFrame, target: str, gameweek: int) -> None
 
 
 if __name__ == "__main__":
-    gw = 3
+    gw = 4
     df_features: pd.DataFrame = build_predict_features(Seasons.SEASON_2425.value, gw)
     predict_for_stat(df_features, "xgoals", gw)
     predict_for_stat(df_features, "xyc", gw)
