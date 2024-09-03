@@ -21,13 +21,18 @@ MIN_FWD_COUNT: int = 1
 TOTAL_FWD_COUNT: int = 3
 MAX_SAME_CLUB_COUNT: int = 3
 
-BENCH_WEIGHTS_ARRAY: list[float] = [0.03, 0.21, 0.1, 0.002]
-
+BENCH_WEIGHTS_ARRAY: list[float] = [0.05, 0.495, 0.171, 0.021]
+"""
+From a set of about 1500 managers from top FPL leagues in GW 1-3 in 2024-25 season,
+this ratio was calculated from taking the GW 1 subs, and seeing how many times they
+have featured in the following two weeks, plus any auto-subs that have happened.
+"""
 WEIGHTS_DECAYS_BASE: list[float] = [0.865, 0.585]
 """
 0.48 is the linear regression slope between one week's top scorers' next week score
-and the max score of next week. Then adding total information kept by each week,
-normalizing to unit sum and then dividing by first week for decay score.
+and the max score of next week for 2023-24. Then adding total information kept by
+each week, normalizing to unit sum and then dividing by first week, we find the
+decay score.
 """
 
 TRANSFER_HIT_PENALTY_PERCENTILE: float = 77.03
@@ -41,5 +46,6 @@ TRANSFER_GAIN_MINIMUM: float = 0.0404 * (1 + sum(WEIGHTS_DECAYS_BASE))
 Standard deviation for the current model is 0.32, which equates to a standard error
 of 0.0146 with predicted gameweek points for gameweek 3. Using z-score of 95%
 confidence interval we get 0.0404 as the minimum difference between two predictions
-for their difference to be statistically significant.
+for their difference to be statistically significant. Then multiplying it by
+the weighting scheme gives us final minimum difference.
 """

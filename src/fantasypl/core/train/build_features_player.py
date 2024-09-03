@@ -1,6 +1,7 @@
 """Functions for creating features for player models."""
 
 import json
+import statistics
 from pathlib import Path
 
 import pandas as pd
@@ -65,6 +66,15 @@ def save_player_joined_df(
         how="left",
         on=["player", "date"],
         validate="m:m",
+    )
+    positions: dict[str, str] = (
+        df_final.groupby("player")["short_position"]
+        .agg(list)
+        .apply(lambda x: statistics.mode([el for el in x if el is not None]))
+        .to_dict()
+    )
+    df_final["short_position"] = df_final["short_position"].fillna(
+        df_final["player"].map(positions)
     )
     for position in ["GK", "DF", "MF", "FW"]:
         df_ = (

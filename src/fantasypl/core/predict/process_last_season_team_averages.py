@@ -55,8 +55,8 @@ def process_stat(  # noqa: PLR0917
         df_[col] /= df_[game_count_col]
         if league_id == 10:  # noqa: PLR2004
             df_[col] *= (
-                FBREF_LEAGUE_OPTA_STRENGTH_DICT["eng ENG_2. Championship"]
-                / FBREF_LEAGUE_OPTA_STRENGTH_DICT["eng ENG_1. Premier League"]
+                (FBREF_LEAGUE_OPTA_STRENGTH_DICT["eng ENG_2. Championship"]) ** 2
+                / (FBREF_LEAGUE_OPTA_STRENGTH_DICT["eng ENG_1. Premier League"]) ** 2
             )
     return df_.drop(columns=game_count_col)
 

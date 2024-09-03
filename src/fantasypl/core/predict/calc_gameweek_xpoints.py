@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 from loguru import logger
-from scipy.stats import poisson  # type: ignore[import-untyped]
+from scipy.stats import norm, poisson  # type: ignore[import-untyped]
 
 from fantasypl.config.constants.folder_config import (
     DATA_FOLDER_FPL,
@@ -73,7 +73,7 @@ def calc_xpoints(gameweek: int) -> None:
     )
 
     df_fpl_players["prob_60"] = df_fpl_players["xmins"].apply(
-        lambda x: 1 - poisson.cdf(59, x) if x > 0 else 0
+        lambda x: 1 - norm.cdf(60, loc=x, scale=31.72) if x > 0 else 0
     )
     df_fpl_players["points_mins"] = df_fpl_players["prob_60"] * 2
     df_fpl_players["points_goals"] = df_fpl_players["xgoals"] * df_fpl_players[
@@ -81,9 +81,11 @@ def calc_xpoints(gameweek: int) -> None:
     ].map(POINTS_GOALS)
     df_fpl_players["points_assists"] = df_fpl_players["xgoals"] * 3
     df_fpl_players["points_yc"] = df_fpl_players["xyc"] * -1
-    df_fpl_players["points_cs"] = poisson.pmf(
-        0, df_fpl_players["xgoals_vs"]
-    ) * df_fpl_players["fpl_position"].map(POINTS_CS)
+    df_fpl_players["points_cs"] = (
+        poisson.pmf(0, df_fpl_players["xgoals_vs"])
+        * df_fpl_players["fpl_position"].map(POINTS_CS)
+        * df_fpl_players["prob_60"]
+    )
     df_fpl_players["points_goals_conceded"] = poisson.pmf(
         2, df_fpl_players["xgoals_vs"]
     ) * df_fpl_players["fpl_position"].map(POINTS_GOALS_CONCEDED)
