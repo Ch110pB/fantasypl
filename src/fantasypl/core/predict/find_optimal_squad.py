@@ -17,6 +17,7 @@ from fantasypl.utils import (
     prepare_df_for_optimization,
     prepare_essential_lp_variables,
     prepare_return_and_log_variables,
+    send_discord_message,
 )
 
 
@@ -129,3 +130,10 @@ if __name__ == "__main__":
     logger.info("Starting Lineup: {}", eleven)
     logger.info("Bench: {}", subs)
     logger.info("Captain: {}", cap)
+    message: str = (
+        f"Optimal Squad:\n"
+        f"Starting Lineup: {", ".join(eleven)}\n"
+        f"Bench: {", ".join(subs)}\n"
+        f"Captain: {cap}"
+    )
+    send_discord_message(message)

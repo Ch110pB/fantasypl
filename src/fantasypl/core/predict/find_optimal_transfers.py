@@ -29,6 +29,7 @@ from fantasypl.utils import (
     prepare_df_for_optimization,
     prepare_essential_lp_variables,
     prepare_return_and_log_variables,
+    send_discord_message,
 )
 
 
@@ -128,8 +129,8 @@ def prepare_data_for_current_team(
         Counter([t["event"] for t in transfers_data])
     )
     free_transfers: int = 1
-    for gw in range(1, previous_gameweek + 1):
-        free_transfers += 1 - transfers_count_dict.get(gw, 0)
+    for week in range(1, previous_gameweek + 1):
+        free_transfers += 1 - transfers_count_dict.get(week, 0)
 
     return (
         now_buy_prices,
@@ -349,3 +350,13 @@ if __name__ == "__main__":
     logger.info("Out: {}", out)
     logger.info("In on FT: {}", ft)
     logger.info("In on Hit: {}", hit)
+    message: str = (
+        f"Optimal Transfers for Current Team:\n"
+        f"Starting Lineup: {", ".join(eleven)}\n"
+        f"Bench: {", ".join(subs)}\n"
+        f"Captain: {cap}\n"
+        f"Out: {", ".join(out)}\n"
+        f"In on FT: {", ".join(ft)}\n"
+        f"In on Hit: {", ".join(hit)}\n"
+    )
+    send_discord_message(message)

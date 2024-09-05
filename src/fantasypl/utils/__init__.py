@@ -21,6 +21,7 @@ from .prediction_helper import (
     prepare_essential_lp_variables,
     prepare_return_and_log_variables,
     process_gameweek_data,
+    send_discord_message,
 )
 from .save_helper import (
     save_json,
@@ -57,4 +58,5 @@ __all__ = [
     "save_pandas",
     "save_pkl",
     "save_requests_response",
+    "send_discord_message",
 ]

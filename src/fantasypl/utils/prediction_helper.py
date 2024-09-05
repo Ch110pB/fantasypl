@@ -1,12 +1,16 @@
 """Helper functions for prediction and optimization."""
 
+import json
 import operator
 from functools import reduce
+from pathlib import Path
 from typing import Any
 
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+import requests
+from loguru import logger
 from pulp import (  # type: ignore[import-untyped]
     LpBinary,
     LpProblem,
@@ -31,6 +35,7 @@ from fantasypl.config.constants import (
     TOTAL_LINEUP_COUNT,
     TOTAL_MID_COUNT,
 )
+from fantasypl.config.constants.folder_config import ROOT_FOLDER
 from fantasypl.config.schemas import Player, Team
 from fantasypl.utils.modeling_helper import get_list_players, get_list_teams
 
@@ -67,7 +72,10 @@ def process_gameweek_data(gameweek: int) -> pd.DataFrame:
 
 
 def pad_lists(
-    row: pd.Series, df_prev_agg: pd.DataFrame, col: str, group_col: str  # type: ignore[type-arg]
+    row: pd.Series,  # type: ignore[type-arg]
+    df_prev_agg: pd.DataFrame,
+    col: str,
+    group_col: str,
 ) -> Any:  # noqa: ANN401
     """
 
@@ -539,3 +547,27 @@ def prepare_return_and_log_variables(  # noqa: PLR0913, PLR0917
         bench_players,
         captain_player,
     )
+
+
+def send_discord_message(text: str) -> None:
+    """
+
+    Parameters
+    ----------
+    text
+        The message to send to Discord.
+
+    """
+    with Path.open(ROOT_FOLDER / "discord_authorization.json", "r") as f:
+        auth_dict: dict[str, str] = json.load(f)
+    url: str = f"https://discord.com/api/v10/channels/{auth_dict["channel_id"]}/messages"
+    data: dict[str, str] = {"content": text}
+    headers: dict[str, str] = {"authorization": auth_dict["token"]}
+
+    response: requests.Response = requests.post(
+        url,
+        json=data,
+        headers=headers,
+        timeout=5,
+    )
+    logger.info("Discord message status code: {}", response.status_code)
