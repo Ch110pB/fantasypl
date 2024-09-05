@@ -5,7 +5,9 @@ from typing import TYPE_CHECKING
 
 from flaml import AutoML  # type: ignore[import-untyped]
 from loguru import logger
-from sklearn.metrics import root_mean_squared_error  # type: ignore[import-untyped]
+from sklearn.metrics import (  # type: ignore[import-untyped]
+    root_mean_squared_error,
+)
 
 from fantasypl.config.constants import (
     METRIC,

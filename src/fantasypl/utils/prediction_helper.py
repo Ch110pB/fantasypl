@@ -32,7 +32,7 @@ from fantasypl.config.constants import (
     TOTAL_MID_COUNT,
 )
 from fantasypl.config.schemas import Player, Team
-from fantasypl.utils import get_list_players, get_list_teams
+from fantasypl.utils.modeling_helper import get_list_players, get_list_teams
 
 
 _list_teams: list[Team] = get_list_teams()
@@ -67,7 +67,7 @@ def process_gameweek_data(gameweek: int) -> pd.DataFrame:
 
 
 def pad_lists(
-    row: pd.Series[Any], df_prev_agg: pd.DataFrame, col: str, group_col: str
+    row: pd.Series, df_prev_agg: pd.DataFrame, col: str, group_col: str  # type: ignore[type-arg]
 ) -> Any:  # noqa: ANN401
     """
 

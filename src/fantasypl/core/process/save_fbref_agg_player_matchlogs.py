@@ -251,7 +251,7 @@ def process_single_team(  # noqa: PLR0914, PLR0915
 
 
 def save_aggregate_player_matchlogs(
-    season: Literal[Seasons.SEASON_2324, Seasons.SEASON_2425],  # type: ignore[valid-type]
+    season: Literal[Seasons.SEASON_2324, Seasons.SEASON_2425],
 ) -> None:
     """
 

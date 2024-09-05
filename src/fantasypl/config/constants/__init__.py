@@ -1,17 +1,17 @@
 """Exposes all the inner constants for a folder level import."""
 
-from folder_config import (
+from .folder_config import (
     DATA_FOLDER_FBREF,
     DATA_FOLDER_FPL,
     DATA_FOLDER_REF,
     MODEL_FOLDER,
     RESOURCE_FOLDER,
 )
-from mapping_config import (
+from .mapping_config import (
     FBREF_LEAGUE_OPTA_STRENGTH_DICT,
     FBREF_POSITION_MAPPING,
 )
-from modeling_config import (
+from .modeling_config import (
     METRIC,
     MODELS,
     SEED,
@@ -20,7 +20,7 @@ from modeling_config import (
     TIME_TRAINING_PLAYER,
     TIME_TRAINING_TEAM,
 )
-from prediction_config import (
+from .prediction_config import (
     BENCH_WEIGHTS_ARRAY,
     FPL_POSITION_ID_DICT,
     MAX_DEF_COUNT,
@@ -46,7 +46,7 @@ from prediction_config import (
     TRANSFER_HIT_PENALTY_PERCENTILE,
     WEIGHTS_DECAYS_BASE,
 )
-from web_config import (
+from .web_config import (
     FBREF_BASE_URL,
     FPL_BADGES_URL,
     FPL_BOOTSTRAP_URL,

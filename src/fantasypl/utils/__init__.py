@@ -1,6 +1,6 @@
 """Exposes all the inner constants for a folder level import."""
 
-from modeling_helper import (
+from .modeling_helper import (
     get_fbref_teams,
     get_form_data,
     get_list_players,
@@ -11,7 +11,7 @@ from modeling_helper import (
     get_train_test_data,
     preprocess_data_and_save,
 )
-from prediction_helper import (
+from .prediction_helper import (
     add_count_constraints,
     add_other_constraints,
     pad_lists,
@@ -22,13 +22,13 @@ from prediction_helper import (
     prepare_return_and_log_variables,
     process_gameweek_data,
 )
-from save_helper import (
+from .save_helper import (
     save_json,
     save_pandas,
     save_pkl,
     save_requests_response,
 )
-from web_helper import extract_table, get_content, get_single_table
+from .web_helper import extract_table, get_content, get_single_table
 
 
 __all__ = [

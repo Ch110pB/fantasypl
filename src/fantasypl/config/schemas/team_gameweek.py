@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from fantasypl.config.schemas import Team
+from fantasypl.config.schemas.team import Team
 
 
 class TeamGameweek(BaseModel):

@@ -215,7 +215,7 @@ def process_single_team(
 
 
 def save_aggregate_team_matchlogs(
-    season: Literal[Seasons.SEASON_2324, Seasons.SEASON_2425],  # type: ignore[valid-type]
+    season: Literal[Seasons.SEASON_2324, Seasons.SEASON_2425],
 ) -> None:
     """
 

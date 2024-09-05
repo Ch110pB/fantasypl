@@ -28,7 +28,7 @@ from fantasypl.config.schemas import (
     Team,
     TeamGameweek,
 )
-from fantasypl.utils import save_pkl
+from fantasypl.utils.save_helper import save_pkl
 
 
 def get_list_teams() -> list[Team]:
