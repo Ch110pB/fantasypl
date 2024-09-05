@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING
 import pandas as pd
 from loguru import logger
 
-from fantasypl.config.constants.folder_config import MODEL_FOLDER
-from fantasypl.utils.save_helper import save_pandas
+from fantasypl.config.constants import MODEL_FOLDER
+from fantasypl.utils import save_pandas
 
 
 if TYPE_CHECKING:
@@ -17,12 +17,15 @@ if TYPE_CHECKING:
 def calc_final_stats(gameweek: int) -> None:
     """
 
-    Args:
-    ----
-        gameweek: Gameweek
+    Parameters
+    ----------
+    gameweek
+        The gameweek under process.
 
     """
-    team_preds_path: Path = MODEL_FOLDER / "predictions/team" / f"gameweek_{gameweek}"
+    team_preds_path: Path = (
+        MODEL_FOLDER / "predictions/team" / f"gameweek_{gameweek}"
+    )
     player_preds_path: Path = (
         MODEL_FOLDER / "predictions/player" / f"gameweek_{gameweek}"
     )
@@ -45,10 +48,7 @@ def calc_final_stats(gameweek: int) -> None:
 
     dict_xgoals: dict[tuple[str, int], float] = (
         df_team_predictions[["team", "gameweek", "team_xgoals"]]
-        .set_index([
-            "team",
-            "gameweek",
-        ])
+        .set_index(["team", "gameweek"])
         .to_dict()["team_xgoals"]
     )
     df_team_predictions["xgoals_vs"] = df_team_predictions.apply(
@@ -64,7 +64,7 @@ def calc_final_stats(gameweek: int) -> None:
                     player_preds_path / pos / f"prediction_{model}.csv"
                 )
                 dfs.append(df_)
-            except FileNotFoundError:
+            except FileNotFoundError:  # noqa: PERF203
                 pass
         df_position: pd.DataFrame = reduce(
             lambda left, right: left.merge(
@@ -81,37 +81,47 @@ def calc_final_stats(gameweek: int) -> None:
     )
 
     df_expected_stats: pd.DataFrame = df_player_predictions.merge(
-        df_team_predictions, on=["team", "gameweek"], how="left", validate="m:m"
+        df_team_predictions,
+        on=["team", "gameweek"],
+        how="left",
+        validate="m:m",
     )
     df_expected_stats = df_expected_stats.fillna(0)
 
     df_expected_stats["xgoals"] = (
         df_expected_stats["xgoals"]
         * df_expected_stats["team_xgoals"]
-        / df_expected_stats.groupby(["team", "gameweek"])["xgoals"].transform("sum")
+        / df_expected_stats.groupby(["team", "gameweek"])["xgoals"].transform(
+            "sum"
+        )
     )
     df_expected_stats["xassists"] = (
         df_expected_stats["xassists"]
         * df_expected_stats["team_xgoals"]
-        / df_expected_stats.groupby([
-            "team",
-            "gameweek",
-        ])["xassists"].transform("sum")
+        / df_expected_stats.groupby(["team", "gameweek"])[
+            "xassists"
+        ].transform("sum")
     )
     df_expected_stats["xmins"] = (
         df_expected_stats["xmins"]
         * 990
-        / df_expected_stats.groupby(["team", "gameweek"])["xmins"].transform("sum")
+        / df_expected_stats.groupby(["team", "gameweek"])["xmins"].transform(
+            "sum"
+        )
     )
     df_expected_stats["xyc"] = (
         df_expected_stats["xyc"]
         * df_expected_stats["team_xyc"]
-        / df_expected_stats.groupby(["team", "gameweek"])["xyc"].transform("sum")
+        / df_expected_stats.groupby(["team", "gameweek"])["xyc"].transform(
+            "sum"
+        )
     )
     df_expected_stats["xpens"] = (
         df_expected_stats["xpens"]
         * df_expected_stats["team_xpens"]
-        / df_expected_stats.groupby(["team", "gameweek"])["xpens"].transform("sum")
+        / df_expected_stats.groupby(["team", "gameweek"])["xpens"].transform(
+            "sum"
+        )
     )
 
     df_expected_stats = df_expected_stats[
@@ -129,8 +139,7 @@ def calc_final_stats(gameweek: int) -> None:
         ]
     ]
     save_pandas(
-        df_expected_stats,
-        player_preds_path / "prediction_expected_stats.csv",
+        df_expected_stats, player_preds_path / "prediction_expected_stats.csv"
     )
     logger.info("Expected stats saved for all players.")
 

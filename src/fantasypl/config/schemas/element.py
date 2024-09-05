@@ -3,14 +3,14 @@
 from pydantic import BaseModel
 
 
-class ElementMixin(BaseModel):
+class Element(BaseModel):
     """
     Superclass of Team and Player.
 
     Attributes
     ----------
         fbref_id: The ID in FBRef.
-        fpl_code: The code in FPL API.
+        fpl_code: The code in the FPL API.
 
     """
 
@@ -19,26 +19,25 @@ class ElementMixin(BaseModel):
 
     def __eq__(self, other: object) -> bool:
         """
+        Parameters
+        ----------
+        other
+            The other object to compare.
 
-        Args:
-        ----
-            other: The other ElementMixin object to compare equality.
-
-        Returns:
+        Returns
         -------
-            A boolean value confirming equality between two ElementMixin objects.
+            Boolean value confirming equality.
 
         """
-        if isinstance(other, ElementMixin):
+        if isinstance(other, Element):
             return self.fbref_id == other.fbref_id
         return False
 
     def __hash__(self) -> int:
         """
-
         Returns
         -------
-            Hash value of a ElementMixin object.
+            The hash value of the Element.
 
         """
         return hash(self.fbref_id)

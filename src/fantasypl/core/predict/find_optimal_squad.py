@@ -1,25 +1,22 @@
 """Functions to find the optimal FPL squad."""
 
-import json
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pulp  # type: ignore[import-untyped]
 from loguru import logger
 
-from fantasypl.config.constants.folder_config import DATA_FOLDER_REF, MODEL_FOLDER
-from fantasypl.config.constants.prediction_config import (
+from fantasypl.config.constants import (
     BENCH_WEIGHTS_ARRAY,
+    MODEL_FOLDER,
     WEIGHTS_DECAYS_BASE,
 )
-from fantasypl.config.models.player import Player
-from fantasypl.utils.prediction_helper import (
+from fantasypl.utils import (
     add_count_constraints,
     add_other_constraints,
-    arrange_return_and_log_variables,
     prepare_common_lists_from_df,
     prepare_df_for_optimization,
-    prepare_lp_variables,
+    prepare_essential_lp_variables,
+    prepare_return_and_log_variables,
 )
 
 
@@ -27,28 +24,26 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
-with Path.open(DATA_FOLDER_REF / "players.json", "r") as fl:
-    _list_players: list[Player] = [
-        Player.model_validate(el) for el in json.load(fl).get("players")
-    ]
-
-
 def find_squad(  # noqa: PLR0914
     gameweek: int,
-    budget: int,
+    budget: int = 1000,
     bench_weights: list[float] | None = None,
     weights_decays_base: list[float] | None = None,
 ) -> tuple[list[str], list[str], str]:
     """
 
-    Args:
-    ----
-        gameweek: Gameweek.
-        budget: Total budget available.
-        bench_weights: Weights given to points of bench players.
-        weights_decays_base: Per GW decay for predicted points.
+    Parameters
+    ----------
+    gameweek
+        The gameweek under process.
+    budget
+        Total budget available for optimization.
+    bench_weights
+        Weights given to points of bench players.
+    weights_decays_base
+        Per GW decay for predicted points.
 
-    Returns:
+    Returns
     -------
         A tuple containing the lineup, bench and the captain.
 
@@ -58,11 +53,17 @@ def find_squad(  # noqa: PLR0914
     if bench_weights is None:
         bench_weights = BENCH_WEIGHTS_ARRAY
 
-    df_values: pd.DataFrame = prepare_df_for_optimization(gameweek, weights_decays_base)
-    players, points, prices, positions, teams = prepare_common_lists_from_df(df_values)
+    df_values: pd.DataFrame = prepare_df_for_optimization(
+        gameweek, weights_decays_base
+    )
+    players, points, prices, positions, teams = prepare_common_lists_from_df(
+        df_values
+    )
 
     problem: pulp.LpProblem = pulp.LpProblem("squad_building", pulp.LpMaximize)
-    lineup, bench_gk, bench_1, bench_2, bench_3, captain = prepare_lp_variables(players)
+    lineup, bench_gk, bench_1, bench_2, bench_3, captain = (
+        prepare_essential_lp_variables(players)
+    )
 
     problem.setObjective(
         points @ (lineup + captain)
@@ -79,7 +80,15 @@ def find_squad(  # noqa: PLR0914
         prices @ (lineup + bench_gk + bench_1 + bench_2 + bench_3) <= budget
     )
     problem = add_other_constraints(
-        problem, lineup, bench_gk, bench_1, bench_2, bench_3, captain, positions, teams
+        problem,
+        lineup,
+        bench_gk,
+        bench_1,
+        bench_2,
+        bench_3,
+        captain,
+        positions,
+        teams,
     )
 
     problem.writeLP(
@@ -95,7 +104,7 @@ def find_squad(  # noqa: PLR0914
         optimal_bench_3,
         bench_players,
         captain_player,
-    ) = arrange_return_and_log_variables(
+    ) = prepare_return_and_log_variables(
         problem, lineup, bench_gk, bench_1, bench_2, bench_3
     )
     logger.info("Optimization complete for fresh squad.")
@@ -115,7 +124,8 @@ def find_squad(  # noqa: PLR0914
 
 
 if __name__ == "__main__":
-    eleven, subs, cap = find_squad(4, 1000)
+    gw: int = 4
+    eleven, subs, cap = find_squad(gw)
     logger.info("Starting Lineup: {}", eleven)
     logger.info("Bench: {}", subs)
     logger.info("Captain: {}", cap)

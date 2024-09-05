@@ -1,6 +1,5 @@
 """Functions to predict player-level for each gameweek."""
 
-import json
 import pickle
 import statistics
 from pathlib import Path
@@ -9,16 +8,12 @@ from typing import TYPE_CHECKING
 import pandas as pd
 from loguru import logger
 
-from fantasypl.config.constants.folder_config import (
+from fantasypl.config.constants import (
     DATA_FOLDER_FBREF,
     DATA_FOLDER_FPL,
-    DATA_FOLDER_REF,
     MODEL_FOLDER,
 )
-from fantasypl.config.models.player import Player
-from fantasypl.config.models.player_gameweek import PlayerGameWeek
-from fantasypl.config.models.season import Season, Seasons
-from fantasypl.config.models.team import Team
+from fantasypl.config.schemas import Season, Seasons
 from fantasypl.core.train.build_features_player import (
     cols_form_for_xassists,
     cols_form_for_xgoals,
@@ -27,34 +22,40 @@ from fantasypl.core.train.build_features_player import (
     cols_form_for_xsaves,
     cols_form_for_xyc,
 )
-from fantasypl.utils.prediction_helper import pad_lists, process_gameweek_data
-from fantasypl.utils.save_helper import save_pandas
+from fantasypl.utils import (
+    get_list_players,
+    get_list_teams,
+    get_player_gameweek_json_to_df,
+    pad_lists,
+    process_gameweek_data,
+    save_pandas,
+)
 
 
 if TYPE_CHECKING:
     import flaml  # type: ignore[import-untyped]
     import numpy as np
     import numpy.typing as npt
-    import sklearn.compose
-
-
-last_season: Season = Seasons.SEASON_2324.value
+    import sklearn.compose  # type: ignore[import-untyped]
 
 
 def find_opponent_npxg_data(gameweek: int) -> pd.DataFrame:
     """
 
-    Args:
-    ----
-        gameweek: Gameweek.
+    Parameters
+    ----------
+    gameweek
+        The gameweek under process.
 
-    Returns:
+    Returns
     -------
         A dataframe containing the npxG data for opponents.
 
     """
     df_xgoals: pd.DataFrame = pd.read_csv(
-        MODEL_FOLDER / "predictions/team" / f"gameweek_{gameweek}/prediction_xgoals.csv"
+        MODEL_FOLDER
+        / "predictions/team"
+        / f"gameweek_{gameweek}/prediction_xgoals.csv"
     )
     dict_xgoals: dict[tuple[str, str, int], float] = df_xgoals.set_index([
         "team",
@@ -62,7 +63,8 @@ def find_opponent_npxg_data(gameweek: int) -> pd.DataFrame:
         "gameweek",
     ]).to_dict()["xgoals"]
     df_xgoals["npxg_vs"] = df_xgoals.apply(
-        lambda row: dict_xgoals[row["opponent"], row["team"], row["gameweek"]], axis=1
+        lambda row: dict_xgoals[row["opponent"], row["team"], row["gameweek"]],
+        axis=1,
     )
     return df_xgoals
 
@@ -70,47 +72,46 @@ def find_opponent_npxg_data(gameweek: int) -> pd.DataFrame:
 def add_players(season: Season) -> pd.DataFrame:
     """
 
-    Args:
-    ----
-        season: Season.
+    Parameters
+    ----------
+    season
+        The season under process.
 
-    Returns:
+    Returns
     -------
-        A dataframe containing FPL players.
+        A dataframe containing all FPL players.
 
     """
     df_fpl_players: pd.DataFrame = pd.read_csv(
         DATA_FOLDER_FPL / season.folder / "players.csv"
     )
-    with Path.open(DATA_FOLDER_REF / "players.json", "r") as fl:
-        _list_players: list[Player] = [
-            Player.model_validate(el) for el in json.load(fl).get("players")
-        ]
-    with Path.open(DATA_FOLDER_REF / "teams.json", "r") as fl:
-        _list_teams: list[Team] = [
-            Team.model_validate(el) for el in json.load(fl).get("teams")
-        ]
 
     df_fpl_players["player"] = [
-        {p.fpl_code: p.fbref_id for p in _list_players}.get(p)
+        {p.fpl_code: p.fbref_id for p in get_list_players()}.get(p)
         for p in df_fpl_players["code"]
     ]
     df_fpl_players["team"] = [
-        {t.fpl_code: t.fbref_id for t in _list_teams}.get(t)
+        {t.fpl_code: t.fbref_id for t in get_list_teams()}.get(t)
         for t in df_fpl_players["team_code"]
     ]
     return df_fpl_players[["player", "team"]].dropna(how="any")
 
 
-def build_predict_features(season: Season, gameweek: int) -> pd.DataFrame:
+def build_predict_features(
+    season: Season, gameweek: int, previous_season: Season
+) -> pd.DataFrame:
     """
 
-    Args:
-    ----
-        season: Season.
-        gameweek: Gameweek.
+    Parameters
+    ----------
+    season
+        The season under process.
+    gameweek
+        The gameweek under process.
+    previous_season
+        The previous season.
 
-    Returns:
+    Returns
     -------
         A dataframe with all the features.
 
@@ -118,22 +119,18 @@ def build_predict_features(season: Season, gameweek: int) -> pd.DataFrame:
     df_gameweek = process_gameweek_data(gameweek)
     df_xgoals = find_opponent_npxg_data(gameweek)
     df_gameweek = df_gameweek.merge(
-        df_xgoals, on=["team", "opponent", "gameweek"], how="left", validate="1:1"
+        df_xgoals,
+        on=["team", "opponent", "gameweek"],
+        how="left",
+        validate="1:1",
     )
 
     df_players = add_players(season)
-    df_gameweek = df_gameweek.merge(df_players, on=["team"], how="left", validate="m:m")
+    df_gameweek = df_gameweek.merge(
+        df_players, on=["team"], how="left", validate="m:m"
+    )
 
-    with Path.open(
-        DATA_FOLDER_FBREF / season.folder / "player_matchlogs.json", "r"
-    ) as fl:
-        _list_player_matchlogs: list[PlayerGameWeek] = [
-            PlayerGameWeek.model_validate(el)
-            for el in json.load(fl).get("player_matchlogs")
-        ]
-        df_season: pd.DataFrame = pd.DataFrame([
-            dict(el) for el in _list_player_matchlogs
-        ])
+    df_season: pd.DataFrame = get_player_gameweek_json_to_df(season)
     df_season["player"] = [player.fbref_id for player in df_season["player"]]
 
     unavailable_players: list[str] = list(
@@ -166,11 +163,15 @@ def build_predict_features(season: Season, gameweek: int) -> pd.DataFrame:
     ]
     cols: list[str] = list(set(df_season.columns) - {"player"})
     df_agg: pd.DataFrame = (
-        df_season.groupby("player")[cols].agg(lambda x: list(x)[-5:]).reset_index()
+        df_season.groupby("player")[cols]
+        .agg(lambda x: list(x)[-5:])
+        .reset_index()
     )
 
     df_prev: pd.DataFrame = pd.read_csv(
-        DATA_FOLDER_FBREF / last_season.folder / "player_seasonal_stats.csv"
+        DATA_FOLDER_FBREF
+        / previous_season.folder
+        / "player_seasonal_stats.csv"
     )
     df_prev = df_prev.set_index("player")
     for col in cols:
@@ -194,31 +195,43 @@ def build_predict_features(season: Season, gameweek: int) -> pd.DataFrame:
             new_columns_[f"{col}_lag_{i}"] = df_gameweek["player"].apply(
                 lambda x, idx=i, c=col: df_agg.at[x, c][1 - idx]  # noqa: PD008
             )
-    return (
+    df_result: pd.DataFrame = (
         pd.concat(
-            [df_gameweek, pd.DataFrame(new_columns_, index=df_gameweek.index)], axis=1
+            [df_gameweek, pd.DataFrame(new_columns_, index=df_gameweek.index)],
+            axis=1,
         )
         if new_columns_
         else df_gameweek
     )
+    return df_result
 
 
 def predict_for_stat(
-    features: pd.DataFrame, position: str, target: str, gameweek: int
+    features: pd.DataFrame,
+    position: str,
+    target: str,
+    gameweek: int,
+    previous_season: Season,
 ) -> None:
     """
 
-    Args:
-    ----
-        features: The features dataframe.
-        position: Player position.
-        target: Prediction stat.
-        gameweek: Gameweek.
+    Parameters
+    ----------
+    features
+        A pandas dataframe containing all the features.
+    position
+        FBRef short position of the player.
+    target
+        The prediction stat.
+    gameweek
+        The gameweek under process.
+    previous_season
+        The previous season.
 
     """
     with Path.open(
         MODEL_FOLDER
-        / last_season.folder
+        / previous_season.folder
         / position
         / f"model_player_{target}/model.pkl",
         "rb",
@@ -226,7 +239,7 @@ def predict_for_stat(
         model: flaml.AutoML = pickle.load(fl)
     with Path.open(
         MODEL_FOLDER
-        / last_season.folder
+        / previous_season.folder
         / position
         / f"model_player_{target}/preprocessor.pkl",
         "rb",
@@ -245,21 +258,28 @@ def predict_for_stat(
         / f"prediction_{target}.csv"
     )
     save_pandas(
-        features[["player", "team", "gameweek", "short_position", target]], fpath
+        features[["player", "team", "gameweek", "short_position", target]],
+        fpath,
     )
-    logger.info("Predictions saved for player {} for position {}", target, position)
+    logger.info(
+        "Predictions saved for player {} for position {}", target, position
+    )
 
 
 if __name__ == "__main__":
-    gw = 4
-    df_features: pd.DataFrame = build_predict_features(Seasons.SEASON_2425.value, gw)
+    gw: int = 4
+    last_season: Season = Seasons.SEASON_2324.value
+    this_season: Season = Seasons.SEASON_2425.value
+    df_features: pd.DataFrame = build_predict_features(
+        this_season, gw, last_season
+    )
     for pos_ in ["GK"]:
-        predict_for_stat(df_features, pos_, "xsaves", gw)
+        predict_for_stat(df_features, pos_, "xsaves", gw, last_season)
     for pos_ in ["MF", "FW"]:
-        predict_for_stat(df_features, pos_, "xpens", gw)
+        predict_for_stat(df_features, pos_, "xpens", gw, last_season)
     for pos_ in ["DF", "MF", "FW"]:
-        predict_for_stat(df_features, pos_, "xgoals", gw)
-        predict_for_stat(df_features, pos_, "xassists", gw)
+        predict_for_stat(df_features, pos_, "xgoals", gw, last_season)
+        predict_for_stat(df_features, pos_, "xassists", gw, last_season)
     for pos_ in ["GK", "DF", "MF", "FW"]:
-        predict_for_stat(df_features, pos_, "xmins", gw)
-        predict_for_stat(df_features, pos_, "xyc", gw)
+        predict_for_stat(df_features, pos_, "xmins", gw, last_season)
+        predict_for_stat(df_features, pos_, "xyc", gw, last_season)

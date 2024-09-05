@@ -1,4 +1,4 @@
-"""Functions for getting FBRef player stats for all seasons."""
+"""Functions for getting FBRef player stats for complete season."""
 
 import asyncio
 from typing import TYPE_CHECKING
@@ -7,12 +7,15 @@ import rich.progress
 from loguru import logger
 from lxml import html
 
-from fantasypl.config.constants.folder_config import DATA_FOLDER_FBREF
-from fantasypl.config.constants.web_config import FBREF_BASE_URL
-from fantasypl.config.models.season import Season, Seasons
-from fantasypl.config.references.player_refs import FBREF_FPL_PLAYER_REF_DICT
-from fantasypl.utils.save_helper import save_json, save_pandas
-from fantasypl.utils.web_helper import get_content, get_single_table
+from fantasypl.config.constants import DATA_FOLDER_FBREF, FBREF_BASE_URL
+from fantasypl.config.references import FBREF_FPL_PLAYER_REF_DICT
+from fantasypl.config.schemas import Season, Seasons
+from fantasypl.utils import (
+    get_content,
+    get_single_table,
+    save_json,
+    save_pandas,
+)
 
 
 if TYPE_CHECKING:
@@ -34,24 +37,29 @@ _tables: list[str] = [
 ]
 
 
-def get_player_season(season: Season, filter_players: list[str] | None = None) -> None:
+def get_player_season(
+    season: Season, filter_players: list[str] | None = None
+) -> None:
     """
 
-    Args:
-    ----
-        season: Season, folder to save the data.
-        filter_players: Optional list of FBRef IDs to run on.
+    Parameters
+    ----------
+    season
+        The season under process.
+    filter_players
+        The optional list of player FBRef IDs.
 
     """
     list_players: list[str] = [*FBREF_FPL_PLAYER_REF_DICT]
     if filter_players is not None:
         list_players = filter_players.copy()
     for player_id in rich.progress.track(
-        list_players,
-        description="Getting player pages from FBRef: ",
+        list_players, description="Getting player pages from FBRef: "
     ):
         try:
-            content: str = get_content(f"{FBREF_BASE_URL}/players/{player_id}/")
+            content: str = get_content(
+                f"{FBREF_BASE_URL}/players/{player_id}/"
+            )
             tree: html.HtmlElement = html.fromstring(content)
             infobox: html.HtmlElement = next(
                 el
@@ -71,7 +79,7 @@ def get_player_season(season: Season, filter_players: list[str] | None = None) -
                 .replace("Position: ", "")
             )
             dfs: list[pd.DataFrame] = asyncio.run(
-                get_single_table(content=content, tables=_tables),
+                get_single_table(content=content, tables=_tables)
             )
             for j, df in enumerate(dfs):
                 fpath: Path = (
@@ -79,7 +87,9 @@ def get_player_season(season: Season, filter_players: list[str] | None = None) -
                     / season.folder
                     / "player_season"
                     / f"{player_id}_{
-                        _tables[j].removeprefix("stats_").removesuffix("_dom_lg")
+                        _tables[j]
+                        .removeprefix("stats_")
+                        .removesuffix("_dom_lg")
                     }.csv"
                 )
 
@@ -96,11 +106,16 @@ def get_player_season(season: Season, filter_players: list[str] | None = None) -
                         season.fbref_name,
                         player_id,
                         f"{player_id}_{
-                            _tables[j].removeprefix("stats_").removesuffix("_dom_lg")
+                            _tables[j]
+                            .removeprefix("stats_")
+                            .removesuffix("_dom_lg")
                         }",
                     )
                 save_pandas(df=df, fpath=fpath)
-            df_details: dict[str, str] = {"name": fbref_name, "position": position}
+            df_details: dict[str, str] = {
+                "name": fbref_name,
+                "position": position,
+            }
             save_json(
                 df_details,
                 (
@@ -110,12 +125,9 @@ def get_player_season(season: Season, filter_players: list[str] | None = None) -
                     / f"{player_id}.json"
                 ),
             )
-        except StopIteration:
+        except StopIteration:  # noqa: PERF203
             logger.error("Fetching page failed for Player ID: {}", player_id)
 
 
 if __name__ == "__main__":
-    get_player_season(
-        Seasons.SEASON_2324.value,
-        filter_players=["6fba4dba"],
-    )
+    get_player_season(Seasons.SEASON_2324.value, filter_players=["6fba4dba"])

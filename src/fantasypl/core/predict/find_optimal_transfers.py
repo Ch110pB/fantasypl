@@ -11,27 +11,24 @@ import pulp  # type: ignore[import-untyped]
 from loguru import logger
 from scipy.stats import scoreatpercentile  # type: ignore[import-untyped]
 
-from fantasypl.config.constants.folder_config import (
-    DATA_FOLDER_FPL,
-    DATA_FOLDER_REF,
-    MODEL_FOLDER,
-)
-from fantasypl.config.constants.prediction_config import (
+from fantasypl.config.constants import (
     BENCH_WEIGHTS_ARRAY,
+    DATA_FOLDER_FPL,
+    MODEL_FOLDER,
     TRANSFER_GAIN_MINIMUM,
     TRANSFER_HIT_PENALTY_PERCENTILE,
     WEIGHTS_DECAYS_BASE,
 )
-from fantasypl.config.models.player import Player
-from fantasypl.config.models.season import Season, Seasons
-from fantasypl.utils.prediction_helper import (
+from fantasypl.config.schemas import Season, Seasons
+from fantasypl.utils import (
     add_count_constraints,
     add_other_constraints,
-    arrange_return_and_log_variables,
-    prepare_additional_lpvariables,
+    get_list_players,
+    prepare_additional_lp_variables,
     prepare_common_lists_from_df,
     prepare_df_for_optimization,
-    prepare_lp_variables,
+    prepare_essential_lp_variables,
+    prepare_return_and_log_variables,
 )
 
 
@@ -40,23 +37,17 @@ if TYPE_CHECKING:
     import numpy.typing as npt
 
 
-current_season: Season = Seasons.SEASON_2425.value
-
-with Path.open(DATA_FOLDER_REF / "players.json", "r") as fl:
-    _list_players: list[Player] = [
-        Player.model_validate(el) for el in json.load(fl).get("players")
-    ]
-
-
 def calculate_sell_price(current_price: int, buy_price: int) -> int:
     """
 
-    Args:
-    ----
-        current_price: Current price of a player.
-        buy_price: Buying price of the player.
+    Parameters
+    ----------
+    current_price
+        Current price of a player.
+    buy_price
+        Buying price of the player.
 
-    Returns:
+    Returns
     -------
         Selling price of the player.
 
@@ -67,15 +58,18 @@ def calculate_sell_price(current_price: int, buy_price: int) -> int:
 
 
 def prepare_data_for_current_team(
-    last_gameweek: int,
+    previous_gameweek: int, current_season: Season
 ) -> tuple[dict[int, int], dict[int, int], list[int], int, int]:
     """
 
-    Args:
-    ----
-        last_gameweek: Gameweek.
+    Parameters
+    ----------
+    previous_gameweek
+        The previous gameweek.
+    current_season
+        The current season.
 
-    Returns:
+    Returns
     -------
         Relevant current team details for optimization.
 
@@ -95,20 +89,23 @@ def prepare_data_for_current_team(
     with Path.open(
         MODEL_FOLDER
         / "predictions/player"
-        / f"gameweek_{last_gameweek}"
+        / f"gameweek_{previous_gameweek}"
         / "team_last_gw.json",
         "r",
     ) as f:
         current_team_data: dict[str, Any] = json.load(f)
-    current_team: list[int] = [el["element"] for el in current_team_data["picks"]]
+    current_team: list[int] = [
+        el["element"] for el in current_team_data["picks"]
+    ]
     current_team_buy_prices: dict[int, int] = {
-        el["element"]: buy_prices[el["element"]] for el in current_team_data["picks"]
+        el["element"]: buy_prices[el["element"]]
+        for el in current_team_data["picks"]
     }
 
     with Path.open(
         MODEL_FOLDER
         / "predictions/player"
-        / f"gameweek_{last_gameweek}"
+        / f"gameweek_{previous_gameweek}"
         / "team_transfers.json",
         "r",
     ) as f:
@@ -131,7 +128,7 @@ def prepare_data_for_current_team(
         Counter([t["event"] for t in transfers_data])
     )
     free_transfers: int = 1
-    for gw in range(1, last_gameweek + 1):
+    for gw in range(1, previous_gameweek + 1):
         free_transfers += 1 - transfers_count_dict.get(gw, 0)
 
     return (
@@ -143,8 +140,9 @@ def prepare_data_for_current_team(
     )
 
 
-def find_optimal_transfers(  # noqa: PLR0914
+def find_optimal_transfers(  # noqa: PLR0913, PLR0914, PLR0917
     gameweek: int,
+    current_season: Season,
     bench_weights: list[float] | None = None,
     weights_decays_base: list[float] | None = None,
     transfer_penalty_percentile: float | None = None,
@@ -152,19 +150,26 @@ def find_optimal_transfers(  # noqa: PLR0914
 ) -> tuple[list[str], list[str], str, list[str], list[str], list[str]]:
     """
 
-    Args:
-    ----
-        gameweek: Gameweek.
-        bench_weights: Weights given to points of bench players.
-        weights_decays_base: Per GW decay for predicted points.
-        transfer_penalty_percentile:
-                Transfer penalty on additional hits as percentile of predictions.
-        transfer_gain_minimum: Minimum points gain to warrant a transfer.
+    Parameters
+    ----------
+    gameweek
+        The gameweek under process.
+    current_season
+        The current season.
+    bench_weights
+        Weights given to points of bench players.
+    weights_decays_base
+        Per GW decay for predicted points.
+    transfer_penalty_percentile
+        Transfer penalty on additional hits as percentile
+        of predictions.
+    transfer_gain_minimum
+         Minimum points gain to warrant a transfer.
 
-
-    Returns:
+    Returns
     -------
-        A tuple containing the lineup, bench, the captain and the transfers.
+        A tuple containing the lineup, bench, the captain
+        and the transfers.
 
     """
     df_fpl: pd.DataFrame = pd.read_csv(
@@ -185,24 +190,30 @@ def find_optimal_transfers(  # noqa: PLR0914
     if transfer_gain_minimum is None:
         transfer_gain_minimum = TRANSFER_GAIN_MINIMUM
 
-    df_values: pd.DataFrame = prepare_df_for_optimization(gameweek, weights_decays_base)
+    df_values: pd.DataFrame = prepare_df_for_optimization(
+        gameweek, weights_decays_base
+    )
     df_values["id"] = df_values["code"].map(_code_to_id_dict)
 
     dict_buy_prices, dict_sell_prices, _current_team, itb, free_transfers = (
-        prepare_data_for_current_team(gameweek - 1)
+        prepare_data_for_current_team(gameweek - 1, current_season)
     )
     df_values["buy_price"] = df_values["id"].map(dict_buy_prices)
     df_values["sell_price"] = df_values["id"].map(dict_sell_prices)
 
-    players, points, prices, positions, teams = prepare_common_lists_from_df(df_values)
+    players, points, prices, positions, teams = prepare_common_lists_from_df(
+        df_values
+    )
     buy_prices: npt.NDArray[np.int32] = df_values["buy_price"].to_numpy()
     sell_prices: npt.NDArray[np.int32] = df_values["sell_price"].to_numpy()
 
     problem: pulp.LpProblem = pulp.LpProblem("transfers", pulp.LpMaximize)
 
-    lineup, bench_gk, bench_1, bench_2, bench_3, captain = prepare_lp_variables(players)
+    lineup, bench_gk, bench_1, bench_2, bench_3, captain = (
+        prepare_essential_lp_variables(players)
+    )
     initial_squad, transfers_out, transfers_in_free, transfers_in_hit = (
-        prepare_additional_lpvariables(players)
+        prepare_additional_lp_variables(players)
     )
 
     problem.setObjective(
@@ -211,18 +222,29 @@ def find_optimal_transfers(  # noqa: PLR0914
         + (bench_weights[1] * points) @ bench_1
         + (bench_weights[2] * points) @ bench_2
         + (bench_weights[3] * points) @ bench_3
-        - scoreatpercentile(points, transfer_penalty_percentile) * sum(transfers_in_hit)
+        - scoreatpercentile(points, transfer_penalty_percentile)
+        * sum(transfers_in_hit)
     )
     problem = add_count_constraints(
         problem, lineup, bench_gk, bench_1, bench_2, bench_3, captain
     )
     problem = add_other_constraints(
-        problem, lineup, bench_gk, bench_1, bench_2, bench_3, captain, positions, teams
+        problem,
+        lineup,
+        bench_gk,
+        bench_1,
+        bench_2,
+        bench_3,
+        captain,
+        positions,
+        teams,
     )
 
     current_team: set[int] = {_id_to_code_dict[el] for el in _current_team}
     for i in range(len(players)):
-        problem.addConstraint(initial_squad[i] == int(players[i] in current_team))
+        problem.addConstraint(
+            initial_squad[i] == int(players[i] in current_team)
+        )
 
     problem.addConstraint(sum(transfers_in_free) <= free_transfers)
     problem.addConstraint(
@@ -272,7 +294,7 @@ def find_optimal_transfers(  # noqa: PLR0914
         optimal_bench_3,
         bench_players,
         captain_player,
-    ) = arrange_return_and_log_variables(
+    ) = prepare_return_and_log_variables(
         problem, lineup, bench_gk, bench_1, bench_2, bench_3
     )
     selected_players: list[str] = [
@@ -280,17 +302,17 @@ def find_optimal_transfers(  # noqa: PLR0914
     ]
     transfers_out_players: list[str] = [
         el.fpl_web_name
-        for el in _list_players
+        for el in get_list_players()
         if f"out{el.fpl_code}" in selected_players
     ]
     transfers_in_free_players: list[str] = [
         el.fpl_web_name
-        for el in _list_players
+        for el in get_list_players()
         if f"ft{el.fpl_code}" in selected_players
     ]
     transfers_in_hit_players: list[str] = [
         el.fpl_web_name
-        for el in _list_players
+        for el in get_list_players()
         if f"hit{el.fpl_code}" in selected_players
     ]
 
@@ -318,7 +340,9 @@ def find_optimal_transfers(  # noqa: PLR0914
 
 
 if __name__ == "__main__":
-    eleven, subs, cap, out, ft, hit = find_optimal_transfers(4)
+    gw: int = 4
+    this_season: Season = Seasons.SEASON_2425.value
+    eleven, subs, cap, out, ft, hit = find_optimal_transfers(gw, this_season)
     logger.info("Starting Lineup: {}", eleven)
     logger.info("Bench: {}", subs)
     logger.info("Captain: {}", cap)

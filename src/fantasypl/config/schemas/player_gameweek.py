@@ -5,8 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from fantasypl.config.models.player import Player
-from fantasypl.config.models.team import Team
+from fantasypl.config.schemas import Player, Team
 
 
 class PlayerGameWeek(BaseModel):
@@ -15,11 +14,11 @@ class PlayerGameWeek(BaseModel):
 
     Attributes
     ----------
-        player: The player class object.
+        player: The Player object.
         team: The Team class object.
         season: Season full name in FBRef.
         date: Date of the match.
-        venue: Home/Away for the team.
+        venue: Home/Away match.
         short_position: Player short position (GK/DF/MF/FW).
         minutes: Player minutes played.
         starts: True if player started the match, False otherwise.

@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from fantasypl.config.models.team import Team
+from fantasypl.config.schemas import Team
 
 
 class TeamGameweek(BaseModel):
@@ -14,11 +14,11 @@ class TeamGameweek(BaseModel):
 
     Attributes
     ----------
-        team: The Team class object.
-        opponent: Opponent.
+        team: The Team object.
+        opponent: The Team object for opponent team.
         season: Season full name in FBRef.
         date: Date of the match.
-        venue: Home/Away for the team.
+        venue: Home/Away match.
         formation: Team formation.
         formation_vs: Opponent formation.
         possession: Team possession.

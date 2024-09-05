@@ -6,17 +6,19 @@ from typing import TYPE_CHECKING
 import pandas as pd
 from loguru import logger
 
-from fantasypl.config.constants.folder_config import DATA_FOLDER_FBREF
-from fantasypl.config.constants.mapping_config import FBREF_LEAGUE_OPTA_STRENGTH_DICT
-from fantasypl.config.models.season import Season, Seasons
-from fantasypl.utils.save_helper import save_pandas
+from fantasypl.config.constants import (
+    DATA_FOLDER_FBREF,
+    FBREF_LEAGUE_OPTA_STRENGTH_DICT,
+)
+from fantasypl.config.schemas import Season, Seasons
+from fantasypl.utils import save_pandas
 
 
 if TYPE_CHECKING:
     from pathlib import Path
 
 
-def process_stat(  # noqa: PLR0917
+def process_stat(  # noqa: PLR0913, PLR0917
     season: Season,
     league_id: int,
     stat: str,
@@ -26,16 +28,22 @@ def process_stat(  # noqa: PLR0917
 ) -> pd.DataFrame:
     """
 
-    Args:
-    ----
-        season: Season.
-        league_id: FBRef league ID. (9=PL, 10=Championship)
-        stat: File name to look at.
-        rename_dict: Column rename dictionary.
-        cols: Columns to be selected.
-        game_count_col: Total number of games played.
+    Parameters
+    ----------
+    season
+        The season under process.
+    league_id
+        FBRef league ID. (9=PL, 10=Championship).
+    stat
+        File name.
+    rename_dict
+        Columns rename dictionary.
+    cols
+        Columns to be selected.
+    game_count_col
+        Total number of games played.
 
-    Returns:
+    Returns
     -------
         A dataframe with per90 columns for a stat.
 
@@ -55,8 +63,14 @@ def process_stat(  # noqa: PLR0917
         df_[col] /= df_[game_count_col]
         if league_id == 10:  # noqa: PLR2004
             df_[col] *= (
-                (FBREF_LEAGUE_OPTA_STRENGTH_DICT["eng ENG_2. Championship"]) ** 2
-                / (FBREF_LEAGUE_OPTA_STRENGTH_DICT["eng ENG_1. Premier League"]) ** 2
+                (FBREF_LEAGUE_OPTA_STRENGTH_DICT["eng ENG_2. Championship"])
+                ** 2
+                / (
+                    FBREF_LEAGUE_OPTA_STRENGTH_DICT[
+                        "eng ENG_1. Premier League"
+                    ]
+                )
+                ** 2
             )
     return df_.drop(columns=game_count_col)
 
@@ -64,9 +78,10 @@ def process_stat(  # noqa: PLR0917
 def build_team_features_prediction(season: Season) -> None:
     """
 
-    Args:
-    ----
-        season: Season.
+    Parameters
+    ----------
+    season
+        The season under process
 
     """
     df_formation: pd.DataFrame = pd.read_csv(
@@ -128,10 +143,7 @@ def build_team_features_prediction(season: Season) -> None:
             season,
             league_id,
             "gca",
-            {
-                "header_sca_sca": "sca",
-                "header_gca_gca": "gca",
-            },
+            {"header_sca_sca": "sca", "header_gca_gca": "gca"},
             ["sca", "gca"],
         )
 
@@ -181,19 +193,14 @@ def build_team_features_prediction(season: Season) -> None:
             season,
             league_id,
             "keeper",
-            {
-                "header_performance_gk_saves": "gk_saves",
-            },
+            {"header_performance_gk_saves": "gk_saves"},
             ["gk_saves"],
             "header_playing_gk_games",
         )
 
         df_league: pd.DataFrame = reduce(
             lambda left, right: left.merge(
-                right,
-                on=["team"],
-                how="left",
-                validate="1:1",
+                right, on=["team"], how="left", validate="1:1"
             ),
             [
                 df_standard,
@@ -210,14 +217,18 @@ def build_team_features_prediction(season: Season) -> None:
         dfs_leagues.append(df_league)
 
     df_other_stats: pd.DataFrame = (
-        pd.concat(dfs_leagues, ignore_index=True) if dfs_leagues else pd.DataFrame()
+        pd.concat(dfs_leagues, ignore_index=True)
+        if dfs_leagues
+        else pd.DataFrame()
     )
     df_formation = df_formation.merge(
         df_other_stats, on="team", how="left", validate="1:1"
     )
     fpath: Path = DATA_FOLDER_FBREF / season.folder / "team_seasonal_stats.csv"
     save_pandas(df_formation, fpath)
-    logger.info("Team seasonal averages saved for season: {}", season.fbref_long_name)
+    logger.info(
+        "Team seasonal averages saved for season: {}", season.fbref_long_name
+    )
 
 
 if __name__ == "__main__":

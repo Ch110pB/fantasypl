@@ -7,10 +7,10 @@ from typing import Any
 import pandas as pd
 from loguru import logger
 
-from fantasypl.config.constants.folder_config import DATA_FOLDER_FPL
-from fantasypl.config.models.season import Season, Seasons
-from fantasypl.config.references.player_refs import FBREF_FPL_PLAYER_REF_DICT
-from fantasypl.utils.save_helper import save_pandas
+from fantasypl.config.constants import DATA_FOLDER_FPL
+from fantasypl.config.references import FBREF_FPL_PLAYER_REF_DICT
+from fantasypl.config.schemas import Season, Seasons
+from fantasypl.utils import save_pandas
 
 
 _cols_teams: list[str] = ["id", "code", "name", "short_name"]
@@ -36,13 +36,18 @@ _cols_players: list[str] = [
 def save_teams(season: Season) -> None:
     """
 
-    Args:
-    ----
-        season: Season.
+    Parameters
+    ----------
+    season
+        The season under process.
 
     """
-    with Path.open(DATA_FOLDER_FPL / season.folder / "bootstrap.json", "r") as f:
-        list_teams_dicts: list[dict[str, Any]] | None = json.load(f).get("teams")
+    with Path.open(
+        DATA_FOLDER_FPL / season.folder / "bootstrap.json", "r"
+    ) as f:
+        list_teams_dicts: list[dict[str, Any]] | None = json.load(f).get(
+            "teams"
+        )
     if not list_teams_dicts:
         logger.error("The key `team` not present in FPL bootstrap")
         return
@@ -55,18 +60,25 @@ def save_teams(season: Season) -> None:
 def save_players(season: Season) -> None:
     """
 
-    Args:
-    ----
-        season: Season.
+    Parameters
+    ----------
+    season
+        The season under process.
 
     """
-    with Path.open(DATA_FOLDER_FPL / season.folder / "bootstrap.json", "r") as f:
-        list_players_dicts: list[dict[str, Any]] | None = json.load(f).get("elements")
+    with Path.open(
+        DATA_FOLDER_FPL / season.folder / "bootstrap.json", "r"
+    ) as f:
+        list_players_dicts: list[dict[str, Any]] | None = json.load(f).get(
+            "elements"
+        )
     if not list_players_dicts:
         logger.error("The key `elements` not present in FPL bootstrap")
         return
     df_players: pd.DataFrame = pd.DataFrame(list_players_dicts)
-    df_players["full_name"] = df_players["first_name"] + " " + df_players["second_name"]
+    df_players["full_name"] = (
+        df_players["first_name"] + " " + df_players["second_name"]
+    )
     df_players = df_players[_cols_players]
     fpath: Path = DATA_FOLDER_FPL / season.folder / "players.csv"
     logger.info(

@@ -5,10 +5,13 @@ from typing import TYPE_CHECKING
 import requests
 from loguru import logger
 
-from fantasypl.config.constants.folder_config import DATA_FOLDER_FPL
-from fantasypl.config.constants.web_config import FPL_BOOTSTRAP_URL, FPL_FIXTURES_URL
-from fantasypl.config.models.season import Season, Seasons
-from fantasypl.utils.save_helper import save_json
+from fantasypl.config.constants import (
+    DATA_FOLDER_FPL,
+    FPL_BOOTSTRAP_URL,
+    FPL_FIXTURES_URL,
+)
+from fantasypl.config.schemas import Season, Seasons
+from fantasypl.utils import save_json
 
 
 if TYPE_CHECKING:
@@ -18,12 +21,13 @@ if TYPE_CHECKING:
 def get_bootstrap(season: Season) -> None:
     """
 
-    Args:
-    ----
-        season: Season.
+    Parameters
+    ----------
+    season
+        The season under process.
 
     """
-    response: requests.Response = requests.get(FPL_BOOTSTRAP_URL)
+    response: requests.Response = requests.get(FPL_BOOTSTRAP_URL, timeout=5)
     fpath: Path = DATA_FOLDER_FPL / season.folder / "bootstrap.json"
     save_json(response.json(), fpath)
     logger.info("FPL Bootstrap downloaded for season {}", season.fbref_name)
@@ -32,12 +36,13 @@ def get_bootstrap(season: Season) -> None:
 def get_fixtures(season: Season) -> None:
     """
 
-    Args:
-    ----
-        season: Season.
+    Parameters
+    ----------
+    season
+        The season under process.
 
     """
-    response: requests.Response = requests.get(FPL_FIXTURES_URL)
+    response: requests.Response = requests.get(FPL_FIXTURES_URL, timeout=5)
     fpath: Path = DATA_FOLDER_FPL / season.folder / "fixtures.json"
     save_json(response.json(), fpath)
     logger.info("FPL Fixtures downloaded for season {}", season.fbref_name)

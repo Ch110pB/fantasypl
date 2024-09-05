@@ -15,11 +15,15 @@ def save_json(
     default: Any | None = None,  # noqa: ANN401
 ) -> None:
     """
-    Args:
-    ----
-        json_dict: The dictionary to save.
-        fpath: The path to save in.
-        default: The default parameter for json.dump().
+
+    Parameters
+    ----------
+    json_dict
+        The dictionary to save.
+    fpath
+        The path to save in.
+    default
+        The default parameter for json.dump().
 
     """
     Path.mkdir(fpath.parent, parents=True, exist_ok=True)
@@ -29,10 +33,13 @@ def save_json(
 
 def save_pandas(df: pd.DataFrame, fpath: Path) -> None:
     """
-    Args:
-    ----
-        df: The pandas dataFrame to save.
-        fpath: The path to save in.
+
+    Parameters
+    ----------
+    df
+        The pandas dataFrame to save.
+    fpath
+        The path to save in.
 
     """
     Path.mkdir(fpath.parent, parents=True, exist_ok=True)
@@ -41,11 +48,15 @@ def save_pandas(df: pd.DataFrame, fpath: Path) -> None:
 
 def save_pkl(obj: Any, fpath: Path, protocol: int | None = None) -> None:  # noqa: ANN401
     """
-    Args:
-    ----
-        obj: The object to save.
-        fpath: The path to save in.
-        protocol: The protocol parameter for pickle.dump().
+
+    Parameters
+    ----------
+    obj
+        The object to save.
+    fpath
+        The path to save in.
+    protocol
+        The protocol parameter for pickle.dump().
 
     """
     Path.mkdir(fpath.parent, parents=True, exist_ok=True)
@@ -56,10 +67,12 @@ def save_pkl(obj: Any, fpath: Path, protocol: int | None = None) -> None:  # noq
 def save_requests_response(response: requests.Response, fpath: Path) -> None:
     """
 
-    Args:
-    ----
-        response: Response from URL.
-        fpath: The path to save in.
+    Parameters
+    ----------
+    response
+        The URL response to save.
+    fpath
+        The path to save in.
 
     """
     Path.mkdir(fpath.parent, parents=True, exist_ok=True)

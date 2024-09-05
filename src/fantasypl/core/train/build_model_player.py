@@ -5,20 +5,19 @@ from typing import TYPE_CHECKING
 
 from flaml import AutoML  # type: ignore[import-untyped]
 from loguru import logger
-from sklearn.metrics import root_mean_squared_error
+from sklearn.metrics import root_mean_squared_error  # type: ignore[import-untyped]
 
-from fantasypl.config.constants.folder_config import MODEL_FOLDER
-from fantasypl.config.constants.modeling_config import (
+from fantasypl.config.constants import (
     METRIC,
+    MODEL_FOLDER,
     MODELS,
     SEED,
     SPLITS_CV,
     TASK,
     TIME_TRAINING_PLAYER,
 )
-from fantasypl.config.models.season import Season, Seasons
-from fantasypl.utils.modeling_helper import get_train_test_data
-from fantasypl.utils.save_helper import save_pkl
+from fantasypl.config.schemas import Season, Seasons
+from fantasypl.utils import get_train_test_data, save_pkl
 
 
 if TYPE_CHECKING:
@@ -31,21 +30,19 @@ if TYPE_CHECKING:
 def train_model_automl(season: Season, position: str, target: str) -> None:
     """
 
-    Args:
-    ----
-        season: Season.
-        position: FBRef position for models.
-        target: The target(y) column.
+    Parameters
+    ----------
+    season
+        The season under process.
+    position
+        FBRef short position for models.
+    target
+        The target(y) column.
 
     """
     automl = AutoML()
-    x_train: npt.NDArray[np.float32]
-    y_train: npt.NDArray[np.float32]
-    x_test: npt.NDArray[np.float32]
-    y_test: npt.NDArray[np.float32]
     x_train, y_train, x_test, y_test = get_train_test_data(
-        folder=f"{position}/model_player_{target}",
-        season=season,
+        folder=f"{position}/model_player_{target}", season=season
     )
     automl.fit(
         x_train,
@@ -72,7 +69,10 @@ def train_model_automl(season: Season, position: str, target: str) -> None:
         root_mean_squared_error(y_test, y_pred),
     )
     fpath: Path = (
-        MODEL_FOLDER / season.folder / position / f"model_player_{target}/model.pkl"
+        MODEL_FOLDER
+        / season.folder
+        / position
+        / f"model_player_{target}/model.pkl"
     )
     save_pkl(automl, fpath, protocol=pickle.HIGHEST_PROTOCOL)
     logger.info(

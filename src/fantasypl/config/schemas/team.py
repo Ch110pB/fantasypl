@@ -1,17 +1,17 @@
 """Contains the Team class."""
 
-from fantasypl.config.models.element_mixin import ElementMixin
+from fantasypl.config.schemas.element import Element
 
 
-class Team(ElementMixin):
+class Team(Element):
     """
     The Team class.
 
     Attributes
     ----------
-        fpl_name: Team name in FPL API.
+        fpl_name: Team name in the FPL API.
         fbref_name: Team name in FBRef.
-        short_name: Team short name in FPL API.
+        short_name: Team short name in the FPL API.
 
     """
 

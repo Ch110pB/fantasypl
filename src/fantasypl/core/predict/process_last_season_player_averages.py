@@ -7,26 +7,16 @@ from pathlib import Path
 import pandas as pd
 import rich.progress
 
-from fantasypl.config.constants.folder_config import (
+from fantasypl.config.constants import (
     DATA_FOLDER_FBREF,
     DATA_FOLDER_FPL,
-    DATA_FOLDER_REF,
+    FBREF_LEAGUE_OPTA_STRENGTH_DICT,
 )
-from fantasypl.config.constants.mapping_config import FBREF_LEAGUE_OPTA_STRENGTH_DICT
-from fantasypl.config.models.player import Player
-from fantasypl.config.models.season import Season, Seasons
-from fantasypl.utils.save_helper import save_pandas
+from fantasypl.config.schemas import Season, Seasons
+from fantasypl.utils import get_list_players, save_pandas
 
 
-with Path.open(DATA_FOLDER_REF / "players.json", "r") as f:
-    _list_players: list[Player] = [
-        Player.model_validate(el) for el in json.load(f).get("players")
-    ]
-
-current_season: Season = Seasons.SEASON_2425.value
-
-
-def process_stat(  # noqa: PLR0917
+def process_stat(  # noqa: PLR0913, PLR0917
     season: Season,
     player_id: str,
     stat: str,
@@ -36,16 +26,22 @@ def process_stat(  # noqa: PLR0917
 ) -> pd.DataFrame:
     """
 
-    Args:
-    ----
-        season: Season.
-        player_id: Player FBRef ID.
-        stat: File name to look at.
-        rename_dict: Column rename dictionary.
-        cols: Columns to be selected.
-        game_count_col: Total number of games played.
+    Parameters
+    ----------
+    season
+        The season under process.
+    player_id
+        Player FBRef ID.
+    stat
+        File name.
+    rename_dict
+        Columns rename dictionary.
+    cols
+        Columns to be selected.
+    game_count_col
+        Total number of games played.
 
-    Returns:
+    Returns
     -------
         A dataframe with per90 columns for a stat.
 
@@ -91,26 +87,35 @@ def process_stat(  # noqa: PLR0917
                 ]
             )
             ** 2
-            / (FBREF_LEAGUE_OPTA_STRENGTH_DICT["eng ENG_1. Premier League"]) ** 2,
+            / (FBREF_LEAGUE_OPTA_STRENGTH_DICT["eng ENG_1. Premier League"])
+            ** 2,
             axis=1,
         )
         df_stats[col] = df_stats[col].mean()
-    return df_stats.drop(columns=["country", "comp_level", game_count_col]).head(1)
+    return df_stats.drop(
+        columns=["country", "comp_level", game_count_col]
+    ).head(1)
 
 
-def build_stats(season: Season) -> None:  # noqa: PLR0914
+def build_stats(season: Season, current_season: Season) -> None:  # noqa: PLR0914
     """
 
-    Args:
-    ----
-        season: Season.
+    Parameters
+    ----------
+    season
+        The season under process
+    current_season
+        The current season.
 
     """
     df_fpl_players: pd.DataFrame = pd.read_csv(
         DATA_FOLDER_FPL / current_season.folder / "players.csv"
     )[["code"]]
     df_fpl_players["player"] = [
-        next((el.fbref_id for el in _list_players if el.fpl_code == x), None)
+        next(
+            (el.fbref_id for el in get_list_players() if el.fpl_code == x),
+            None,
+        )
         for x in df_fpl_players["code"]
     ]
     df_fpl_players = df_fpl_players.drop(columns=["code"])
@@ -122,11 +127,17 @@ def build_stats(season: Season) -> None:  # noqa: PLR0914
     ):
         try:
             with Path.open(
-                DATA_FOLDER_FBREF / season.folder / f"player_season/{player}.json", "r"
+                DATA_FOLDER_FBREF
+                / season.folder
+                / f"player_season/{player}.json",
+                "r",
             ) as fl:
                 dict_: dict[str, str] = json.load(fl)
             df_: pd.DataFrame = pd.DataFrame([
-                {"player": player, "short_position": str(dict_["position"])[:2]}
+                {
+                    "player": player,
+                    "short_position": str(dict_["position"])[:2],
+                }
             ])
         except FileNotFoundError:
             continue
@@ -148,7 +159,7 @@ def build_stats(season: Season) -> None:  # noqa: PLR0914
             player,
             "standard",
             {
-                "header_progression_progressive_carries": "progressive_carries",
+                "header_progression_progressive_carries": "progressive_carries",  # noqa: E501
                 "header_progression_progressive_passes": "progressive_passes",
             },
             ["progressive_carries", "progressive_passes"],
@@ -172,7 +183,10 @@ def build_stats(season: Season) -> None:  # noqa: PLR0914
             season,
             player,
             "passing",
-            {"header_expected_pass_xa": "pass_xa", "assisted_shots": "key_passes"},
+            {
+                "header_expected_pass_xa": "pass_xa",
+                "assisted_shots": "key_passes",
+            },
             ["pass_xa", "key_passes"],
         )
 
@@ -211,9 +225,7 @@ def build_stats(season: Season) -> None:  # noqa: PLR0914
             season,
             player,
             "keeper",
-            {
-                "header_performance_gk_saves": "gk_saves",
-            },
+            {"header_performance_gk_saves": "gk_saves"},
             ["gk_saves"],
             "header_playing_minutes_90s",
         )
@@ -222,18 +234,13 @@ def build_stats(season: Season) -> None:  # noqa: PLR0914
             season,
             player,
             "keeper_adv",
-            {
-                "header_expected_gk_psxg": "gk_psxg",
-            },
+            {"header_expected_gk_psxg": "gk_psxg"},
             ["gk_psxg"],
         )
 
         df_player: pd.DataFrame = reduce(
             lambda left, right: left.merge(
-                right,
-                on=["player"],
-                how="left",
-                validate="1:1",
+                right, on=["player"], how="left", validate="1:1"
             ),
             [
                 df_,
@@ -253,7 +260,8 @@ def build_stats(season: Season) -> None:  # noqa: PLR0914
         pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
     )
     df_all_stats["progressive_actions"] = (
-        df_all_stats["progressive_carries"] + df_all_stats["progressive_passes"]
+        df_all_stats["progressive_carries"]
+        + df_all_stats["progressive_passes"]
     )
     df_all_stats["defensive_actions"] = (
         df_all_stats["tackles_won"]
@@ -264,9 +272,11 @@ def build_stats(season: Season) -> None:  # noqa: PLR0914
     df_fpl_players = df_fpl_players.merge(
         df_all_stats, on="player", how="left", validate="1:1"
     )
-    fpath: Path = DATA_FOLDER_FBREF / season.folder / "player_seasonal_stats.csv"
+    fpath: Path = (
+        DATA_FOLDER_FBREF / season.folder / "player_seasonal_stats.csv"
+    )
     save_pandas(df_fpl_players, fpath)
 
 
 if __name__ == "__main__":
-    build_stats(Seasons.SEASON_2324.value)
+    build_stats(Seasons.SEASON_2324.value, Seasons.SEASON_2425.value)

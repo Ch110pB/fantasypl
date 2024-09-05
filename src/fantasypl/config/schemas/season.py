@@ -1,4 +1,4 @@
-"""Contains the Season class and the Seasons enums."""
+"""Contains the Season class and the Seasons enum."""
 
 from enum import Enum
 
@@ -26,17 +26,15 @@ class Seasons(Enum):
     """
     The Seasons enums.
 
-    Contains:
+    Contains
+    --------
         The Season enums for different seasons.
+
     """
 
     SEASON_2324 = Season(
-        folder="2324",
-        fbref_name="2023-24",
-        fbref_long_name="2023-2024",
+        folder="2324", fbref_name="2023-24", fbref_long_name="2023-2024"
     )
     SEASON_2425 = Season(
-        folder="2425",
-        fbref_name="2024-25",
-        fbref_long_name="2024-2025",
+        folder="2425", fbref_name="2024-25", fbref_long_name="2024-2025"
     )

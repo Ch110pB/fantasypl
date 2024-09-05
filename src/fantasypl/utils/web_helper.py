@@ -1,4 +1,4 @@
-"""Helper functions for scraping the web for stats."""
+"""Helper functions for scraping the web."""
 
 import asyncio
 import operator
@@ -11,22 +11,28 @@ import requests
 from lxml import html
 
 
-def get_content(url: str, delay: int = 8) -> str:
+def get_content(url: str, delay: int = 8, timeout: int = 15) -> str:
     """
-    Args:
-    ----
-        url: URL to scrape.
-        delay: Delay between GET calls in seconds.
 
-    Returns:
+    Parameters
+    ----------
+    url
+        The URL to scrape.
+    delay
+        The delay between requests in seconds.
+    timeout
+        The timeout in seconds.
+
+    Returns
     -------
-        The webpage content.
+        The contents of the web page.
 
     """
     with requests.Session() as session:
         response: requests.models.Response = session.get(
             url=url,
             headers={"User-Agent": "Mozilla/5.0"},
+            timeout=timeout,
         )
         time.sleep(delay)
     return response.content.decode("utf-8")
@@ -35,20 +41,26 @@ def get_content(url: str, delay: int = 8) -> str:
 def extract_table(
     content: str,
     table_id: str,
+    *,
     href: bool = False,
     dropna_cols: list[str] | None = None,
 ) -> pd.DataFrame:
     """
-    Args:
-    ----
-        content: The webpage content.
-        table_id: The table ID to scrape.
-        href: True if some links are needed, False otherwise.
-        dropna_cols: Columns to mark empty rows.
 
-    Returns:
+    Parameters
+    ----------
+    content
+        The contents of the web page.
+    table_id
+        The table ID to fetch.
+    href
+        Boolean value for whether href links are required.
+    dropna_cols
+        Columns to mark NA rows.
+
+    Returns
     -------
-        A pandas dataframe containing data from the table.
+        A pandas dataframe containing the table data.
 
     """
     if dropna_cols is None:
@@ -102,6 +114,7 @@ def extract_table(
 async def extract_table_async(
     content: str,
     table_id: str,
+    *,
     href: bool = False,
     dropna_cols: list[str] | None = None,
 ) -> pd.DataFrame:
@@ -110,24 +123,32 @@ async def extract_table_async(
 
     Returns
     -------
-        A pandas dataframe containing data from the table.
+        A pandas dataframe containing the table data.
 
     """
-    return await asyncio.to_thread(extract_table, content, table_id, href, dropna_cols)
+    return await asyncio.to_thread(
+        extract_table,
+        content,
+        table_id,
+        href=href,
+        dropna_cols=dropna_cols,
+    )
 
 
 async def get_single_table(
     content: str,
     tables: list[str],
+    *,
     href: bool = False,
     dropna_cols: list[str] | None = None,
 ) -> list[pd.DataFrame]:
     """
-    Merges the results from extract table async into a list of pandas dataframes.
+    Merges the results from extract table async into a list
+    of pandas dataframes.
 
     Returns
     -------
-        A list of pandas dataframes containing data from the table.
+        A list of pandas dataframes containing table data.
 
     """
     coroutines: list[Awaitable[pd.DataFrame]] = [

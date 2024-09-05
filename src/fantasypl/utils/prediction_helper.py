@@ -1,17 +1,20 @@
-"""Helper functions for current season predictions."""
+"""Helper functions for prediction and optimization."""
 
-import json
 import operator
 from functools import reduce
-from pathlib import Path
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-from pulp import LpBinary, LpProblem, LpVariable, value  # type: ignore[import-untyped]
+from pulp import (  # type: ignore[import-untyped]
+    LpBinary,
+    LpProblem,
+    LpVariable,
+    value,
+)
 
-from fantasypl.config.constants.folder_config import DATA_FOLDER_REF, MODEL_FOLDER
-from fantasypl.config.constants.prediction_config import (
+from fantasypl.config.constants import (
     MAX_DEF_COUNT,
     MAX_FWD_COUNT,
     MAX_GKP_COUNT,
@@ -21,72 +24,74 @@ from fantasypl.config.constants.prediction_config import (
     MIN_FWD_COUNT,
     MIN_GKP_COUNT,
     MIN_MID_COUNT,
+    MODEL_FOLDER,
     TOTAL_DEF_COUNT,
     TOTAL_FWD_COUNT,
     TOTAL_GKP_COUNT,
     TOTAL_LINEUP_COUNT,
     TOTAL_MID_COUNT,
 )
-from fantasypl.config.models.player import Player
-from fantasypl.config.models.team import Team
+from fantasypl.config.schemas import Player, Team
+from fantasypl.utils import get_list_players, get_list_teams
 
 
-with Path.open(DATA_FOLDER_REF / "teams.json", "r") as f:
-    list_teams: list[Team] = [
-        Team.model_validate(el) for el in json.load(f).get("teams")
-    ]
-
-with Path.open(DATA_FOLDER_REF / "players.json", "r") as fl:
-    list_players: list[Player] = [
-        Player.model_validate(el) for el in json.load(fl).get("players")
-    ]
+_list_teams: list[Team] = get_list_teams()
+_list_players: list[Player] = get_list_players()
 
 
 def process_gameweek_data(gameweek: int) -> pd.DataFrame:
     """
 
-    Args:
-    ----
-        gameweek: Gameweek
+    Parameters
+    ----------
+    gameweek
+        The gameweek under process.
 
-    Returns:
+    Returns
     -------
-        A dataframe containing gameweek fixtures with FBRef IDs for teams.
+        A dataframe containing gameweek fixtures with team FBRef IDs.
 
     """
     df_gameweek: pd.DataFrame = pd.read_csv(
         MODEL_FOLDER / "predictions/team" / f"gameweek_{gameweek}/fixtures.csv"
     )
     df_gameweek["team"] = [
-        next(el.fbref_id for el in list_teams if el.fbref_id == x)
+        next(el.fbref_id for el in _list_teams if el.fbref_id == x)
         for x in df_gameweek["team"]
     ]
     df_gameweek["opponent"] = [
-        next(el.fbref_id for el in list_teams if el.fbref_id == x)
+        next(el.fbref_id for el in _list_teams if el.fbref_id == x)
         for x in df_gameweek["opponent"]
     ]
     return df_gameweek
 
 
-def pad_lists(row: pd.Series, df2: pd.DataFrame, col: str, group_col: str) -> pd.Series:  # type: ignore[type-arg]
+def pad_lists(
+    row: pd.Series[Any], df_prev_agg: pd.DataFrame, col: str, group_col: str
+) -> Any:  # noqa: ANN401
     """
 
-    Args:
-    ----
-        row: A row of running dataframe.
-        df2: The aggregate dataframe.
-        col: Column name.
-        group_col: Group by column name.
+    Parameters
+    ----------
+    row
+        A row of the dataframe for the current season.
+    df_prev_agg
+        The aggregate dataframe from the previous season.
+    col
+        The column name containing the list.
+    group_col
+        The column to group by.
 
-    Returns:
+    Returns
     -------
-        The modified row.
+        The row with the list in the corresponding column
+        with values padded from previous season.
 
     """
-    prev_season_value: str | int | float = df2.at[row[group_col], col]  # noqa: PD008
+    prev_season_value: str | int | float = df_prev_agg.at[row[group_col], col]  # noqa: PD008
     if len(row[col]) < 5:  # noqa: PLR2004
         row[col] = [prev_season_value] * (5 - len(row[col])) + row[col]
-    return row[col]  # type: ignore[no-any-return]
+    return row[col]
 
 
 def prepare_df_for_optimization(
@@ -94,12 +99,14 @@ def prepare_df_for_optimization(
 ) -> pd.DataFrame:
     """
 
-    Args:
-    ----
-        gameweek: Gameweek.
-        weights_decays_base: Per GW decay for predicted points.
+    Parameters
+    ----------
+    gameweek
+        The gameweek under process.
+    weights_decays_base
+        Per GW decay array for predicted points.
 
-    Returns:
+    Returns
     -------
         A dataframe containing the features for the optimization problem.
 
@@ -156,11 +163,12 @@ def prepare_common_lists_from_df(
 ]:
     """
 
-    Args:
-    ----
-        df_values: The prepared dataframe for optimization.
+    Parameters
+    ----------
+    df_values
+        The prepared dataframe for optimization.
 
-    Returns:
+    Returns
     -------
         A tuple containing players, points, prices, positions and teams
 
@@ -173,7 +181,30 @@ def prepare_common_lists_from_df(
     return players, points, prices, positions, teams
 
 
-def prepare_lp_variables(
+def helper_create_lp_variables(
+    prefixes: list[str], players: npt.NDArray[np.int32]
+) -> list[npt.NDArray[LpVariable]]:
+    """
+
+    Parameters
+    ----------
+    prefixes
+        List of prefixes.
+    players
+        The list of players.
+
+    Returns
+    -------
+        List of LP variables.
+
+    """
+    return [
+        np.array([LpVariable(f"{prefix}{pl}", cat=LpBinary) for pl in players])
+        for prefix in prefixes
+    ]
+
+
+def prepare_essential_lp_variables(
     players: npt.NDArray[np.int32],
 ) -> tuple[
     npt.NDArray[LpVariable],
@@ -185,37 +216,24 @@ def prepare_lp_variables(
 ]:
     """
 
-    Args:
-    ----
-        players: The list of players.
+    Parameters
+    ----------
+    players
+        The list of players.
 
-    Returns:
+    Returns
     -------
         A tuple containing the LP variables for lineup and bench.
 
     """
-    lineup: npt.NDArray[LpVariable] = np.array([
-        LpVariable(f"l{pl}", cat=LpBinary) for pl in players
-    ])
-    bench_gk: npt.NDArray[LpVariable] = np.array([
-        LpVariable(f"bg{pl}", cat=LpBinary) for pl in players
-    ])
-    bench_1: npt.NDArray[LpVariable] = np.array([
-        LpVariable(f"bf{pl}", cat=LpBinary) for pl in players
-    ])
-    bench_2: npt.NDArray[LpVariable] = np.array([
-        LpVariable(f"bs{pl}", cat=LpBinary) for pl in players
-    ])
-    bench_3: npt.NDArray[LpVariable] = np.array([
-        LpVariable(f"bt{pl}", cat=LpBinary) for pl in players
-    ])
-    captain: npt.NDArray[LpVariable] = np.array([
-        LpVariable(f"c{pl}", cat=LpBinary) for pl in players
-    ])
+    prefixes: list[str] = ["l", "bg", "bf", "bs", "bt", "c"]
+    lineup, bench_gk, bench_1, bench_2, bench_3, captain = (
+        helper_create_lp_variables(prefixes, players)
+    )
     return lineup, bench_gk, bench_1, bench_2, bench_3, captain
 
 
-def prepare_additional_lpvariables(
+def prepare_additional_lp_variables(
     players: npt.NDArray[np.int32],
 ) -> tuple[
     npt.NDArray[LpVariable],
@@ -225,31 +243,24 @@ def prepare_additional_lpvariables(
 ]:
     """
 
-    Args:
-    ----
-        players: The list of players.
+    Parameters
+    ----------
+    players
+        The list of players.
 
-    Returns:
+    Returns
     -------
         A tuple containing the LP variables for transfers.
 
     """
-    initial_squad: npt.NDArray[LpVariable] = np.array([
-        LpVariable(f"sq{pl}", cat=LpBinary) for pl in players
-    ])
-    transfers_out: npt.NDArray[LpVariable] = np.array([
-        LpVariable(f"out{pl}", cat=LpBinary) for pl in players
-    ])
-    transfers_in_free: npt.NDArray[LpVariable] = np.array([
-        LpVariable(f"ft{pl}", cat=LpBinary) for pl in players
-    ])
-    transfers_in_hit: npt.NDArray[LpVariable] = np.array([
-        LpVariable(f"hit{pl}", cat=LpBinary) for pl in players
-    ])
+    prefixes = ["sq", "out", "ft", "hit"]
+    initial_squad, transfers_out, transfers_in_free, transfers_in_hit = (
+        helper_create_lp_variables(prefixes, players)
+    )
     return initial_squad, transfers_out, transfers_in_free, transfers_in_hit
 
 
-def add_count_constraints(  # noqa: PLR0917
+def add_count_constraints(  # noqa: PLR0913, PLR0917
     problem: LpProblem,
     lineup: npt.NDArray[LpVariable],
     bench_gk: npt.NDArray[LpVariable],
@@ -260,17 +271,24 @@ def add_count_constraints(  # noqa: PLR0917
 ) -> LpProblem:
     """
 
-    Args:
-    ----
-        problem: The LP problem.
-        lineup: The LP variable for lineup.
-        bench_gk: The LP variable for the bench gk.
-        bench_1: The LP variable for first bench.
-        bench_2: The LP variable for second bench.
-        bench_3: The LP variable for third bench.
-        captain: The LP variable for captain.
+    Parameters
+    ----------
+    problem
+        The LP problem.
+    lineup
+        The LP variable for lineup.
+    bench_gk
+        The LP variable for the bench gk.
+    bench_1
+        The LP variable for the first bench.
+    bench_2
+        The LP variable for the second bench.
+    bench_3
+        The LP variable for the third bench.
+    captain
+        The LP variable for the captain.
 
-    Returns:
+    Returns
     -------
         The LP problem with count constraints.
 
@@ -284,7 +302,7 @@ def add_count_constraints(  # noqa: PLR0917
     return problem
 
 
-def add_position_constraints(  # noqa: PLR0917
+def helper_add_positional_constraints(  # noqa: PLR0913, PLR0917
     problem: LpProblem,
     mask: npt.NDArray[np.bool],
     lineup: npt.NDArray[LpVariable],
@@ -295,28 +313,37 @@ def add_position_constraints(  # noqa: PLR0917
 ) -> LpProblem:
     """
 
-    Args:
-    ----
-        problem: LP problem.
-        mask: Position mask.
-        lineup: Lineup array.
-        bench: Bench arrays.
-        min_count: Minimum count for position.
-        max_count: Maximum count for position.
-        total_count: Total count for position.
+    Parameters
+    ----------
+    problem
+        The LP problem.
+    mask
+        Position mask.
+    lineup
+        The LP variable for lineup.
+    bench
+        The LP variables array for bench.
+    min_count
+        Minimum count for position.
+    max_count
+        Maximum count for position.
+    total_count
+        Total count for position.
 
-    Returns:
+    Returns
     -------
         The LP problem with positional constraints.
 
     """
     problem.addConstraint(mask @ lineup >= min_count)
     problem.addConstraint(mask @ lineup <= max_count)
-    problem.addConstraint(mask @ (lineup + reduce(operator.add, bench)) == total_count)
+    problem.addConstraint(
+        mask @ (lineup + reduce(operator.add, bench)) == total_count
+    )
     return problem
 
 
-def add_other_constraints(  # noqa: PLR0917
+def add_other_constraints(  # noqa: PLR0913, PLR0917
     problem: LpProblem,
     lineup: npt.NDArray[LpVariable],
     bench_gk: npt.NDArray[LpVariable],
@@ -329,21 +356,30 @@ def add_other_constraints(  # noqa: PLR0917
 ) -> LpProblem:
     """
 
-    Args:
-    ----
-        problem: The LP problem.
-        lineup: The LP variable for lineup.
-        bench_gk: The LP variable for the bench gk.
-        bench_1: The LP variable for first bench.
-        bench_2: The LP variable for second bench.
-        bench_3: The LP variable for third bench.
-        captain: The LP variable for captain.
-        positions: The positions array.
-        teams: The teams array.
+    Parameters
+    ----------
+    problem
+        The LP problem.
+    lineup
+        The LP variable for lineup.
+    bench_gk
+        The LP variable for the bench gk.
+    bench_1
+        The LP variable for the first bench.
+    bench_2
+        The LP variable for the second bench.
+    bench_3
+        The LP variable for the third bench.
+    captain
+        The LP variable for the captain.
+    positions
+        The list of positions.
+    teams
+        The list of teams.
 
-    Returns:
+    Returns
     -------
-        The LP problem with sub-not-in-lineup, captain-in-lineup, positional
+        The LP problem with membership, positional
         and team constraints.
 
     """
@@ -356,7 +392,7 @@ def add_other_constraints(  # noqa: PLR0917
     for expr in capt_in_lineup_expressions:
         problem.addConstraint(expr >= 0)
 
-    problem = add_position_constraints(
+    problem = helper_add_positional_constraints(
         problem,
         np.array(positions == "GKP"),
         lineup,
@@ -365,7 +401,7 @@ def add_other_constraints(  # noqa: PLR0917
         MAX_GKP_COUNT,
         TOTAL_GKP_COUNT,
     )
-    problem = add_position_constraints(
+    problem = helper_add_positional_constraints(
         problem,
         np.array(positions == "DEF"),
         lineup,
@@ -374,7 +410,7 @@ def add_other_constraints(  # noqa: PLR0917
         MAX_DEF_COUNT,
         TOTAL_DEF_COUNT,
     )
-    problem = add_position_constraints(
+    problem = helper_add_positional_constraints(
         problem,
         np.array(positions == "MID"),
         lineup,
@@ -383,7 +419,7 @@ def add_other_constraints(  # noqa: PLR0917
         MAX_MID_COUNT,
         TOTAL_MID_COUNT,
     )
-    problem = add_position_constraints(
+    problem = helper_add_positional_constraints(
         problem,
         np.array(positions == "FWD"),
         lineup,
@@ -403,7 +439,7 @@ def add_other_constraints(  # noqa: PLR0917
     return problem
 
 
-def arrange_return_and_log_variables(  # noqa: PLR0917
+def prepare_return_and_log_variables(  # noqa: PLR0913, PLR0917
     problem: LpProblem,
     lineup: npt.NDArray[LpVariable],
     bench_gk: npt.NDArray[LpVariable],
@@ -422,57 +458,76 @@ def arrange_return_and_log_variables(  # noqa: PLR0917
 ]:
     """
 
-    Args:
-    ----
-        problem: The LP problem.
-        lineup: The LP variable for lineup.
-        bench_gk: The LP variable for the bench gk.
-        bench_1: The LP variable for first bench.
-        bench_2: The LP variable for second bench.
-        bench_3: The LP variable for third bench.
+    Parameters
+    ----------
+    problem
+        The LP problem.
+    lineup
+        The LP variable for lineup.
+    bench_gk
+        The LP variable for the bench gk.
+    bench_1
+        The LP variable for the first bench.
+    bench_2
+        The LP variable for the second bench.
+    bench_3
+        The LP variable for the third bench.
 
-    Returns:
+    Returns
     -------
-        A tuple containing all variables required for return and logging purposes.
+        A tuple containing all variables required for return
+        and logging purposes.
 
     """
-    optimal_lineup: npt.NDArray[np.float32] = np.array([value(var) for var in lineup])
+    optimal_lineup: npt.NDArray[np.float32] = np.array([
+        value(var) for var in lineup
+    ])
     optimal_bench_gk: npt.NDArray[np.float32] = np.array([
         value(var) for var in bench_gk
     ])
-    optimal_bench_1: npt.NDArray[np.float32] = np.array([value(var) for var in bench_1])
-    optimal_bench_2: npt.NDArray[np.float32] = np.array([value(var) for var in bench_2])
-    optimal_bench_3: npt.NDArray[np.float32] = np.array([value(var) for var in bench_3])
+    optimal_bench_1: npt.NDArray[np.float32] = np.array([
+        value(var) for var in bench_1
+    ])
+    optimal_bench_2: npt.NDArray[np.float32] = np.array([
+        value(var) for var in bench_2
+    ])
+    optimal_bench_3: npt.NDArray[np.float32] = np.array([
+        value(var) for var in bench_3
+    ])
     selected_players: list[str] = [
         v.name for v in problem.variables() if v.varValue == 1
     ]
     lineup_players: list[str] = [
-        el.fpl_web_name for el in list_players if f"l{el.fpl_code}" in selected_players
+        el.fpl_web_name
+        for el in _list_players
+        if f"l{el.fpl_code}" in selected_players
     ]
     bench_players: list[str] = (
         [
             el.fpl_web_name
-            for el in list_players
+            for el in _list_players
             if f"bg{el.fpl_code}" in selected_players
         ]
         + [
             el.fpl_web_name
-            for el in list_players
+            for el in _list_players
             if f"bf{el.fpl_code}" in selected_players
         ]
         + [
             el.fpl_web_name
-            for el in list_players
+            for el in _list_players
             if f"bs{el.fpl_code}" in selected_players
         ]
         + [
             el.fpl_web_name
-            for el in list_players
+            for el in _list_players
             if f"bt{el.fpl_code}" in selected_players
         ]
     )
     captain_player: str = next(
-        el.fpl_web_name for el in list_players if f"c{el.fpl_code}" in selected_players
+        el.fpl_web_name
+        for el in _list_players
+        if f"c{el.fpl_code}" in selected_players
     )
     return (
         optimal_lineup,

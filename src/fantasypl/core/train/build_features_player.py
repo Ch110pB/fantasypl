@@ -1,17 +1,17 @@
-"""Functions for creating features for player models."""
+"""Functions for creating features for the player models."""
 
-import json
 import statistics
-from pathlib import Path
 
 import pandas as pd
 from loguru import logger
 
-from fantasypl.config.constants.folder_config import DATA_FOLDER_FBREF
-from fantasypl.config.models.player_gameweek import PlayerGameWeek
-from fantasypl.config.models.season import Season, Seasons
-from fantasypl.utils.modeling_helper import get_form_data
-from fantasypl.utils.save_helper import save_pandas
+from fantasypl.config.constants import DATA_FOLDER_FBREF
+from fantasypl.config.schemas import Season, Seasons
+from fantasypl.utils import (
+    get_form_data,
+    get_player_gameweek_json_to_df,
+    save_pandas,
+)
 
 
 cols_form_for_xgoals: list[str] = ["shots_on_target", "npxg", "sca", "gca"]
@@ -30,19 +30,20 @@ cols_form_for_xsaves: list[str] = ["gk_saves", "gk_psxg"]
 
 
 def save_player_joined_df(
-    data: pd.DataFrame,
-    season: Season,
-    cols_form: list[str],
-    stat: str,
+    data: pd.DataFrame, season: Season, cols_form: list[str], stat: str
 ) -> None:
     """
 
-    Args:
-    ----
-        data: A pandas dataframe having the entire dataset.
-        season: Season.
-        cols_form: List of column names for lagged features on.
-        stat: Model name.
+    Parameters
+    ----------
+    data
+        A pandas dataframe containing full stats.
+    season
+        The season under process.
+    cols_form
+        The columns to create lagged features.
+    stat
+        The model name.
 
     """
     if stat == "xmins":
@@ -57,15 +58,10 @@ def save_player_joined_df(
             + data["clearances"]
         )
     grouped_form_data: pd.DataFrame = get_form_data(
-        data=data,
-        cols=cols_form,
-        team_or_player="player",
+        data=data, cols=cols_form, team_or_player="player"
     )
     df_final: pd.DataFrame = data.merge(
-        grouped_form_data,
-        how="left",
-        on=["player", "date"],
-        validate="m:m",
+        grouped_form_data, how="left", on=["player", "date"], validate="m:m"
     )
     positions: dict[str, str] = (
         df_final.groupby("player")["short_position"]
@@ -96,54 +92,48 @@ def save_player_joined_df(
 def get_players_training_data(season: Season) -> None:
     """
 
-    Args:
-    ----
-        season: Season.
+    Parameters
+    ----------
+    season
+        The season under process.
 
     """
-    with Path.open(
-        DATA_FOLDER_FBREF / season.folder / "player_matchlogs.json", "r"
-    ) as f:
-        list_player_matchlogs: list[PlayerGameWeek] = [
-            PlayerGameWeek.model_validate(el)
-            for el in json.load(f).get("player_matchlogs")
-        ]
-    df: pd.DataFrame = pd.DataFrame([dict(el) for el in list_player_matchlogs])
-    df["player"] = [player.fbref_id for player in df["player"]]
-    df["team"] = [team.fbref_id for team in df["team"]]
+    player_df: pd.DataFrame = get_player_gameweek_json_to_df(season)
+    player_df["player"] = [player.fbref_id for player in player_df["player"]]
+    player_df["team"] = [team.fbref_id for team in player_df["team"]]
 
     save_player_joined_df(
-        data=df,
+        data=player_df,
         season=season,
         cols_form=cols_form_for_xgoals,
         stat="xgoals",
     )
     save_player_joined_df(
-        data=df,
+        data=player_df,
         season=season,
         cols_form=cols_form_for_xassists,
         stat="xassists",
     )
     save_player_joined_df(
-        data=df,
+        data=player_df,
         season=season,
         cols_form=cols_form_for_xyc,
         stat="xyc",
     )
     save_player_joined_df(
-        data=df,
+        data=player_df,
         season=season,
         cols_form=cols_form_for_xmins,
         stat="xmins",
     )
     save_player_joined_df(
-        data=df,
+        data=player_df,
         season=season,
         cols_form=cols_form_for_xsaves,
         stat="xsaves",
     )
     save_player_joined_df(
-        data=df,
+        data=player_df,
         season=season,
         cols_form=cols_form_for_xpens,
         stat="xpens",

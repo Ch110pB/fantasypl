@@ -4,11 +4,9 @@ from typing import TYPE_CHECKING
 
 from loguru import logger
 
-from fantasypl.config.constants.folder_config import DATA_FOLDER_FBREF
-from fantasypl.config.constants.web_config import FBREF_BASE_URL
-from fantasypl.config.models.season import Season, Seasons
-from fantasypl.utils.save_helper import save_pandas
-from fantasypl.utils.web_helper import extract_table, get_content
+from fantasypl.config.constants import DATA_FOLDER_FBREF, FBREF_BASE_URL
+from fantasypl.config.schemas import Season, Seasons
+from fantasypl.utils import extract_table, get_content, save_pandas
 
 
 if TYPE_CHECKING:
@@ -20,9 +18,10 @@ if TYPE_CHECKING:
 def get_teams(season: Season) -> None:
     """
 
-    Args:
-    ----
-        season: Season.
+    Parameters
+    ----------
+    season
+        The season under process.
 
     """
     url: str = f"{FBREF_BASE_URL}/comps/9/{season.fbref_long_name}/"
@@ -31,7 +30,9 @@ def get_teams(season: Season) -> None:
     df_teams: pd.DataFrame = extract_table(
         content=content, table_id=table_id, href=True
     )
-    df_teams["fbref_id"] = df_teams["team"].str[1].str.strip().str.split("/").str[3]
+    df_teams["fbref_id"] = (
+        df_teams["team"].str[1].str.strip().str.split("/").str[3]
+    )
     df_teams["name"] = df_teams["team"].str[0].str.strip()
     df_teams = df_teams[["fbref_id", "name"]]
     fpath: Path = DATA_FOLDER_FBREF / season.folder / "teams.csv"

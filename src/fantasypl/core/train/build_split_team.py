@@ -3,26 +3,29 @@
 import pandas as pd
 from loguru import logger
 
-from fantasypl.config.constants.folder_config import DATA_FOLDER_FBREF
-from fantasypl.config.models.season import Season, Seasons
-from fantasypl.utils.modeling_helper import preprocess_data_and_save
+from fantasypl.config.constants import DATA_FOLDER_FBREF
+from fantasypl.config.schemas import Season, Seasons
+from fantasypl.utils import preprocess_data_and_save
 
 
 def build_split(season: Season, target_name: str, target_col: str) -> None:
     """
 
-    Args:
-    ----
-        season: Season.
-        target_name: The model name.
-        target_col: The target(y) column.
+    Parameters
+    ----------
+    season
+        The season under process.
+    target_name
+        The model name.
+    target_col
+        The target(y) column.
 
     """
     df: pd.DataFrame = pd.read_csv(
         DATA_FOLDER_FBREF
         / season.folder
         / "training"
-        / f"teams_{target_name}_features.csv",
+        / f"teams_{target_name}_features.csv"
     )
     _select_cols: list[str] = [
         col
@@ -57,7 +60,9 @@ def build_split(season: Season, target_name: str, target_col: str) -> None:
         team_or_player="team",
         season=season,
     )
-    logger.info("Train-test splits and preprocessor saved for team {}", target_name)
+    logger.info(
+        "Train-test splits and preprocessor saved for team {}", target_name
+    )
 
 
 if __name__ == "__main__":

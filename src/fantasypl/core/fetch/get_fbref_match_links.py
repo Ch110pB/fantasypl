@@ -4,11 +4,9 @@ from typing import TYPE_CHECKING
 
 from loguru import logger
 
-from fantasypl.config.constants.folder_config import DATA_FOLDER_FBREF
-from fantasypl.config.constants.web_config import FBREF_BASE_URL
-from fantasypl.config.models.season import Season, Seasons
-from fantasypl.utils.save_helper import save_pandas
-from fantasypl.utils.web_helper import extract_table, get_content
+from fantasypl.config.constants import DATA_FOLDER_FBREF, FBREF_BASE_URL
+from fantasypl.config.schemas import Season, Seasons
+from fantasypl.utils import extract_table, get_content, save_pandas
 
 
 if TYPE_CHECKING:
@@ -19,22 +17,22 @@ if TYPE_CHECKING:
 
 def get_match_links(season: Season) -> None:
     """
-    Args:
-    ----
-        season: Season.
+    Parameters
+    ----------
+    season
+        The season to get FBRef match links for.
 
     """
     url: str = f"{FBREF_BASE_URL}/comps/9/{season.fbref_long_name}/schedule/"
     content: str = get_content(url=url, delay=0)
     table_id: str = f"sched_{season.fbref_long_name}_9_1"
     df_links: pd.DataFrame = extract_table(
-        content=content,
-        table_id=table_id,
-        href=True,
-        dropna_cols=["score"],
+        content=content, table_id=table_id, href=True, dropna_cols=["score"]
     )
     if df_links.empty:
-        logger.error("FBRef Data fetch failed for Season: {}", season.fbref_name)
+        logger.error(
+            "FBRef Data fetch failed for Season: {}", season.fbref_name
+        )
         return
     df_links = df_links[["date", "home_team", "score", "away_team"]]
     df_links["home_team"] = (
@@ -45,7 +43,8 @@ def get_match_links(season: Season) -> None:
     )
     df_links["match_link"] = df_links["score"].str[1]
     df_links["date"] = df_links["date"].str[0]
-    df_links = df_links.drop(columns="score").loc[df_links["match_link"] != ""]
+    df_links = df_links.drop(columns="score")
+    df_links = df_links.loc[df_links["match_link"] != ""]
     fpath: Path = DATA_FOLDER_FBREF / season.folder / "match_links.csv"
     save_pandas(df_links, fpath)
     logger.info(

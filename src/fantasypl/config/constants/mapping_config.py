@@ -1,11 +1,15 @@
 """
-Mapping dictionaries.
+Dictionaries containing mappings.
 
-Contains:
-- FBREF_LEAGUE_OPTA_STRENGTH_DICT:
-        Dictionary containing league strengths of last season (Opta Power Rankings).
-- FBREF_POSITION_MAPPING:
-        Dictionary containing FBRef position to short_position mapping.
+Contains
+--------
+FBREF_LEAGUE_OPTA_STRENGTH_DICT
+    Dictionary containing league strengths
+    of last season (Opta Power Rankings).
+FBREF_POSITION_MAPPING
+    Dictionary containing FBRef position
+    to short_position mapping.
+
 """
 
 FBREF_LEAGUE_OPTA_STRENGTH_DICT: dict[str, float] = {
@@ -44,19 +48,19 @@ FBREF_LEAGUE_OPTA_STRENGTH_DICT: dict[str, float] = {
 FBREF_POSITION_MAPPING: dict[str, str] = {
     "GK": "GK",
     "DF": "DF",
-    "MF": "MF",
-    "FW": "FW",
     "FB": "DF",
     "LB": "DF",
     "RB": "DF",
     "CB": "DF",
     "WB": "DF",
+    "MF": "MF",
     "DM": "MF",
     "CM": "MF",
     "LM": "MF",
     "RM": "MF",
     "WM": "MF",
     "AM": "MF",
+    "FW": "FW",
     "LW": "FW",
     "RW": "FW",
 }

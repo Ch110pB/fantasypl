@@ -1,49 +1,39 @@
 """Functions to calculate expected points for players for each gameweek."""
 
-import json
-from pathlib import Path
-
 import pandas as pd
 from loguru import logger
 from scipy.stats import norm, poisson  # type: ignore[import-untyped]
 
-from fantasypl.config.constants.folder_config import (
+from fantasypl.config.constants import (
     DATA_FOLDER_FPL,
-    DATA_FOLDER_REF,
-    MODEL_FOLDER,
-)
-from fantasypl.config.constants.prediction_config import (
     FPL_POSITION_ID_DICT,
+    MINUTES_STANDARD_DEVIATION,
+    MODEL_FOLDER,
     POINTS_CS,
     POINTS_GOALS,
     POINTS_GOALS_CONCEDED,
     POINTS_SAVES,
 )
-from fantasypl.config.models.player import Player
-from fantasypl.config.models.season import Season, Seasons
-from fantasypl.utils.save_helper import save_pandas
+from fantasypl.config.schemas import Season, Seasons
+from fantasypl.utils import get_list_players, save_pandas
 
 
-season: Season = Seasons.SEASON_2425.value
-
-
-def calc_xpoints(gameweek: int) -> None:
+def calc_xpoints(gameweek: int, season: Season) -> None:
     """
 
-    Args:
-    ----
-        gameweek: Gameweek.
+    Parameters
+    ----------
+    gameweek
+        The gameweek under process.
+    season
+        The season under process.
 
     """
     df_fpl_players: pd.DataFrame = pd.read_csv(
         DATA_FOLDER_FPL / season.folder / "players.csv"
     )
-    with Path.open(DATA_FOLDER_REF / "players.json", "r") as fl:
-        _list_players: list[Player] = [
-            Player.model_validate(el) for el in json.load(fl).get("players")
-        ]
     df_fpl_players["player"] = [
-        {p.fpl_code: p.fbref_id for p in _list_players}.get(p)
+        {p.fpl_code: p.fbref_id for p in get_list_players()}.get(p)
         for p in df_fpl_players["code"]
     ]
     df_fpl_players["fpl_position"] = df_fpl_players["element_type"].map(
@@ -73,7 +63,9 @@ def calc_xpoints(gameweek: int) -> None:
     )
 
     df_fpl_players["prob_60"] = df_fpl_players["xmins"].apply(
-        lambda x: 1 - norm.cdf(60, loc=x, scale=31.72) if x > 0 else 0
+        lambda x: 1 - norm.cdf(60, loc=x, scale=MINUTES_STANDARD_DEVIATION)
+        if x > 0
+        else 0
     )
     df_fpl_players["points_mins"] = df_fpl_players["prob_60"] * 2
     df_fpl_players["points_goals"] = df_fpl_players["xgoals"] * df_fpl_players[
@@ -102,7 +94,9 @@ def calc_xpoints(gameweek: int) -> None:
         + df_fpl_players["points_gk_saves"]
     )
     df_fpl_players["points"] = (
-        df_fpl_players["points"] * df_fpl_players["chance_of_playing_next_round"] / 100
+        df_fpl_players["points"]
+        * df_fpl_players["chance_of_playing_next_round"]
+        / 100
     )
     save_pandas(
         df_fpl_players,
@@ -115,4 +109,6 @@ def calc_xpoints(gameweek: int) -> None:
 
 
 if __name__ == "__main__":
-    calc_xpoints(4)
+    gw: int = 4
+    this_season: Season = Seasons.SEASON_2425.value
+    calc_xpoints(gw, this_season)

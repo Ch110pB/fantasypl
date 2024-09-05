@@ -1,15 +1,13 @@
-"""Functions for getting FBRef team stats for last season."""
+"""Functions for getting FBRef team stats for complete season."""
 
 import asyncio
 from typing import TYPE_CHECKING
 
 from loguru import logger
 
-from fantasypl.config.constants.folder_config import DATA_FOLDER_FBREF
-from fantasypl.config.constants.web_config import FBREF_BASE_URL
-from fantasypl.config.models.season import Season, Seasons
-from fantasypl.utils.save_helper import save_pandas
-from fantasypl.utils.web_helper import get_content, get_single_table
+from fantasypl.config.constants import DATA_FOLDER_FBREF, FBREF_BASE_URL
+from fantasypl.config.schemas import Season, Seasons
+from fantasypl.utils import get_content, get_single_table, save_pandas
 
 
 if TYPE_CHECKING:
@@ -41,17 +39,19 @@ _tables: list[str] = [
 def get_league_season(season: Season, league_id: int) -> None:
     """
 
-    Args:
-    ----
-        season: Season, folder to save the data.
-        league_id: FBRef League ID (9=PL, 10=Championship).
+    Parameters
+    ----------
+    season
+        The season under process.
+    league_id
+        The FBRef League ID (9=PL, 10=Championship).
 
     """
     content: str = get_content(
         f"{FBREF_BASE_URL}/comps/{league_id}/{season.fbref_long_name}/"
     )
     dfs: list[pd.DataFrame] = asyncio.run(
-        get_single_table(content=content, tables=_tables),
+        get_single_table(content=content, tables=_tables)
     )
     for j, df in enumerate(dfs):
         fpath: Path = (
@@ -59,15 +59,22 @@ def get_league_season(season: Season, league_id: int) -> None:
             / season.folder
             / "team_season"
             / str(league_id)
-            / f"{_tables[j].removeprefix("stats_squads_").removesuffix("_for")}.csv"
+            / f"{
+                _tables[j].removeprefix("stats_squads_").removesuffix("_for")
+            }.csv"
         )
 
         if df.empty:
             logger.error(
-                "Data fetch error from FBRef: " "Season = {} League = {} " "Stat = {}",
+                "Data fetch error from FBRef: "
+                "Season = {} League = {} Stat = {}",
                 season.fbref_name,
                 league_id,
-                f"{_tables[j].removeprefix("stats_squads_").removesuffix("_for")}",
+                f"{
+                    _tables[j]
+                    .removeprefix("stats_squads_")
+                    .removesuffix("_for")
+                }",
             )
         save_pandas(df=df, fpath=fpath)
     logger.info(

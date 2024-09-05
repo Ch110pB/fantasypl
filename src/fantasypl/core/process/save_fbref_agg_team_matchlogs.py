@@ -1,6 +1,5 @@
 """Functions for creating team matchlogs for entire season."""
 
-import json
 from functools import reduce
 from pathlib import Path
 from typing import Literal
@@ -9,18 +8,11 @@ import pandas as pd
 import rich.progress
 from loguru import logger
 
-from fantasypl.config.constants.folder_config import DATA_FOLDER_FBREF, DATA_FOLDER_REF
-from fantasypl.config.models.season import Season, Seasons
-from fantasypl.config.models.team import Team
-from fantasypl.config.models.team_gameweek import TeamGameweek
-from fantasypl.utils.modeling_helper import get_fbref_teams
-from fantasypl.utils.save_helper import save_json
-
-
-with Path.open(DATA_FOLDER_REF / "teams.json", "r") as f:
-    _list_teams: list[Team] = [
-        Team.model_validate(el) for el in json.load(f).get("teams")
-    ]
+from fantasypl.config.constants import (
+    DATA_FOLDER_FBREF,
+)
+from fantasypl.config.schemas import Season, Seasons, Team, TeamGameweek
+from fantasypl.utils import get_fbref_teams, get_list_teams, save_json
 
 
 def process_single_stat(
@@ -32,15 +24,20 @@ def process_single_stat(
 ) -> pd.DataFrame:
     """
 
-    Args:
-    ----
-        folder_structure: Path for the parent folder.
-        stat: File name to look at.
-        rename_dict: Column rename dictionary.
-        cols: Columns to be selected.
-        dropna_cols: Columns to mark empty rows.
+    Parameters
+    ----------
+    folder_structure
+        Path for the parent folder.
+    stat
+        File name to look at.
+    rename_dict
+        Columns rename dictionary.
+    cols
+        Columns to be selected.
+    dropna_cols
+        Columns to mark empty rows.
 
-    Returns:
+    Returns
     -------
         A pandas dataframe containing data for a particular stat.
 
@@ -52,17 +49,18 @@ def process_single_stat(
 
 
 def process_single_team(
-    team_short_name: str,
-    season: Season,
+    team_short_name: str, season: Season
 ) -> list[dict[str, TeamGameweek]]:
     """
 
-    Args:
-    ----
-        team_short_name: Team FPL API short name.
-        season: Season.
+    Parameters
+    ----------
+    team_short_name
+        Team FPL API short name.
+    season
+        The season under process.
 
-    Returns:
+    Returns
     -------
         A list containing teams' gameweek data for the team.
 
@@ -73,10 +71,7 @@ def process_single_team(
 
     df_team_gw: pd.DataFrame = reduce(
         lambda left, right: left.merge(
-            right,
-            on="date",
-            how="left",
-            validate="1:1",
+            right, on="date", how="left", validate="1:1"
         ),
         [
             process_single_stat(
@@ -185,11 +180,7 @@ def process_single_team(
                     "header_performance_cards_yellow": "yellow_cards_vs",
                     "header_performance_cards_red": "red_cards_vs",
                 },
-                [
-                    "date",
-                    "yellow_cards_vs",
-                    "red_cards_vs",
-                ],
+                ["date", "yellow_cards_vs", "red_cards_vs"],
                 ["date"],
             ),
             process_single_stat(
@@ -205,39 +196,48 @@ def process_single_team(
         ],
     )
 
-    team: Team = next(el for el in _list_teams if el.short_name == team_short_name)
+    team: Team = next(
+        el for el in get_list_teams() if el.short_name == team_short_name
+    )
     df_team_gw["opponent"] = [
-        {t.fbref_name: t for t in _list_teams}.get(t) for t in df_team_gw["opponent"]
+        {t.fbref_name: t for t in get_list_teams()}.get(t)
+        for t in df_team_gw["opponent"]
     ]
     df_team_gw = df_team_gw.sort_values(by="date", ascending=True)
     return [
-        TeamGameweek.model_validate(
-            {"team": team, "season": season.fbref_long_name, **row},
-        ).model_dump()
+        TeamGameweek.model_validate({
+            "team": team,
+            "season": season.fbref_long_name,
+            **row,
+        }).model_dump()
         for row in df_team_gw.to_dict(orient="records")
     ]
 
 
 def save_aggregate_team_matchlogs(
-    season: Literal[Seasons.SEASON_2324, Seasons.SEASON_2425],
+    season: Literal[Seasons.SEASON_2324, Seasons.SEASON_2425],  # type: ignore[valid-type]
 ) -> None:
     """
 
-    Args:
-    ----
-        season: Season.
+    Parameters
+    ----------
+    season
+        The season under process.
 
     """
     dfs: list[dict[str, TeamGameweek]] = []
     _teams: list[str] = get_fbref_teams(season.value)
     for team_name in rich.progress.track(_teams):
-        team: Team = next(el for el in _list_teams if el.fbref_name == team_name)
+        team: Team = next(
+            el for el in get_list_teams() if el.fbref_name == team_name
+        )
         df_temp: list[dict[str, TeamGameweek]] = process_single_team(
-            team.short_name,
-            season.value,
+            team.short_name, season.value
         )
         dfs += df_temp
-    fpath: Path = DATA_FOLDER_FBREF / season.value.folder / "team_matchlogs.json"
+    fpath: Path = (
+        DATA_FOLDER_FBREF / season.value.folder / "team_matchlogs.json"
+    )
     save_json({"team_matchlogs": dfs}, fpath=fpath, default=str)
     logger.info(
         "Team matchlogs saved for all clubs from Season: {}",

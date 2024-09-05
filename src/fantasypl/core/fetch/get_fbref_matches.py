@@ -1,18 +1,23 @@
 """Functions for getting FBRef match details"""
 
 import asyncio
-import json
 from pathlib import Path
 
 import pandas as pd
 import rich.progress
 from loguru import logger
 
-from fantasypl.config.constants.folder_config import DATA_FOLDER_FBREF, DATA_FOLDER_REF
-from fantasypl.config.models.season import Season, Seasons
-from fantasypl.config.models.team import Team
-from fantasypl.utils.save_helper import save_pandas
-from fantasypl.utils.web_helper import get_content, get_single_table
+from fantasypl.config.constants import (
+    DATA_FOLDER_FBREF,
+    FBREF_BASE_URL,
+)
+from fantasypl.config.schemas import Season, Seasons, Team
+from fantasypl.utils import (
+    get_content,
+    get_list_teams,
+    get_single_table,
+    save_pandas,
+)
 
 
 _tables: list[str] = [
@@ -23,62 +28,67 @@ _tables: list[str] = [
     "keeper_stats_{}",
 ]
 
-with Path.open(DATA_FOLDER_REF / "teams.json", "r") as f:
-    _list_teams: list[Team] = [
-        Team.model_validate(el) for el in json.load(f).get("teams")
-    ]
-
 
 def get_fpath(
-    season: Season,
-    team_input: str,
-    date: str,
-    tables: list[str],
-    j: int,
+    season: Season, team_fbref_id: str, date: str, tables: list[str], j: int
 ) -> Path:
     """
-    Args:
-    ----
-        season: Season.
-        team_input: Team FBRef ID.
-        date: Date of the match.
-        tables: Tables Home/Away.
-        j: Iterator for finding table name.
 
-    Returns:
+    Parameters
+    ----------
+    season
+        The season under process.
+    team_fbref_id
+        FBRef team ID.
+    date
+        The date of the match.
+    tables
+        The list of tables.
+    j
+        The iterator for finding table name.
+
+    Returns
     -------
-        Path for saving file.
+        Path for saving the file.
 
-    Raises:
+    Raises
     ------
-        IndexError: If team FBRef ID is not found.
+    IndexError
+        If team FBRef ID is not found.
 
     """
     try:
-        team: Team = next(team for team in _list_teams if team.fbref_id == team_input)
+        team: Team = next(
+            team for team in get_list_teams() if team.fbref_id == team_fbref_id
+        )
     except StopIteration as err:
-        logger.exception(f"{team_input} NOT FOUND!!")
+        logger.exception(f"{team_fbref_id} NOT FOUND!!")
         raise IndexError from err
-    return (
+    table_name: str = (
+        tables[j].replace(f"stats_{team_fbref_id}", "").strip("_")
+    )
+    file_path: Path = (
         DATA_FOLDER_FBREF
         / season.folder
         / "matches"
         / team.short_name
-        / f"{tables[j].replace(f"stats_{team_input}", "").strip("_")}_{date}.csv"
+        / f"{table_name}_{date}.csv"
     )
+    return file_path
 
 
 def get_matches(season: Season) -> None:
     """
 
-    Args:
-    ----
-        season: Season.
+    Parameters
+    ----------
+    season
+        The season under progress.
 
     """
     logger.info("Downloading match data for season {}", season.fbref_name)
     df_links: pd.DataFrame = pd.read_csv(
-        DATA_FOLDER_FBREF / season.folder / "match_links.csv",
+        DATA_FOLDER_FBREF / season.folder / "match_links.csv"
     )
 
     with rich.progress.Progress() as progress:
@@ -98,18 +108,21 @@ def get_matches(season: Season) -> None:
             tables_away: list[str] = [
                 table_idx.format(away_team) for table_idx in _tables
             ]
-            url: str = f"https://fbref.com/{match_link}"
-            content: str = get_content(url=url)
+            content: str = get_content(url=f"{FBREF_BASE_URL}/{match_link}")
             dfs_home: list[pd.DataFrame] = asyncio.run(
-                get_single_table(content=content, tables=tables_home),
+                get_single_table(content=content, tables=tables_home)
             )
             if not dfs_home:
-                logger.error("Team {} Error on Match: {}", home_team, match_link)
+                logger.error(
+                    "Team {} Error on Match: {}", home_team, match_link
+                )
             dfs_away: list[pd.DataFrame] = asyncio.run(
-                get_single_table(content=content, tables=tables_away),
+                get_single_table(content=content, tables=tables_away)
             )
             if not dfs_away:
-                logger.error("Team {} Error on Match: {}", away_team, match_link)
+                logger.error(
+                    "Team {} Error on Match: {}", away_team, match_link
+                )
             df: pd.DataFrame
             j: int
             fpath: Path

@@ -8,25 +8,30 @@ exclude = [
     "site-packages",
 ]
 
-line-length = 88
+line-length = 79
 indent-width = 4
 fix = true
 preview = true
 
 [lint]
-select = ["A", "B", "C", "D", "E", "F", "I", "N", "Q", "W", "ANN", "ARG",
-    "ASYNC", "COM", "C4", "DOC", "FURB", "FLY", "ICN", "INT", "ISC", "NPY",
-    "PD", "PERF", "PIE", "PL", "PT", "PTH", "RET", "RUF", "SIM", "SLF",
-    "TCH", "TID", "TRY", "T20", "UP"]
-ignore = ["ANN101", "COM812", "D203", "D205", "D211", "D212", "D400",
-    "D401", "D415", "ISC001", "PERF203", "PLR0913"]
+select = ["F", "E", "W", "C90", "I", "N", "D", "UP", "ANN",
+    "ASYNC", "S", "BLE", "FBT", "B", "A", "COM", "C4", "DTZ",
+    "EM", "ISC", "ICN", "LOG", "G", "INP", "PIE",
+    "T20", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM",
+    "TID", "TCH", "INT", "ARG", "PTH", "TD", "PD",
+    "PGH", "PL", "TRY", "FLY", "NPY", "FAST", "PERF", "FURB",
+    "DOC", "RUF"]
+ignore = ["COM812", "D205", "D400", "D401", "ISC001", "S301", "S403"]
 
 [lint.per-file-ignores]
-"__init__.py" = ["D104", "E402", "F401", "F403", "F811"]
+"__init__.py" = ["D104"]
 
 [lint.isort]
 lines-after-imports = 2
 combine-as-imports = true
+
+[lint.pydocstyle]
+convention = "numpy"
 
 [format]
 quote-style = "double"
@@ -34,3 +39,4 @@ indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
 docstring-code-format = true
+docstring-code-line-length = 72

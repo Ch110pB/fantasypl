@@ -1,22 +1,27 @@
 """Functions for getting FBRef team matchlogs."""
 
 import asyncio
-import json
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import rich.progress
 from loguru import logger
 
-from fantasypl.config.constants.folder_config import DATA_FOLDER_FBREF, DATA_FOLDER_REF
-from fantasypl.config.constants.web_config import FBREF_BASE_URL
-from fantasypl.config.models.season import Season, Seasons
-from fantasypl.config.models.team import Team
-from fantasypl.utils.save_helper import save_pandas
-from fantasypl.utils.web_helper import get_content, get_single_table
+from fantasypl.config.constants import (
+    DATA_FOLDER_FBREF,
+    FBREF_BASE_URL,
+)
+from fantasypl.config.schemas import Season, Seasons
+from fantasypl.utils import (
+    get_content,
+    get_list_teams,
+    get_single_table,
+    save_pandas,
+)
 
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     import pandas as pd
 
 
@@ -33,21 +38,24 @@ _stat_tables: list[str] = [
 ]
 
 
-def get_matchlogs(season: Season, filter_teams: list[str] | None = None) -> None:
+def get_matchlogs(
+    season: Season, filter_teams: list[str] | None = None
+) -> None:
     """
 
-    Args:
-    ----
-        season: Season.
-        filter_teams: Optional list of team short names to run on.
+    Parameters
+    ----------
+    season
+        The season under process.
+    filter_teams
+         The optional list of team short names.
 
     """
-    with Path.open(DATA_FOLDER_REF / "teams.json", "r") as f:
-        list_teams: list[Team] = [
-            Team.model_validate(el) for el in json.load(f).get("teams")
-        ]
+    list_teams = get_list_teams()
     if filter_teams is not None:
-        list_teams = [team for team in list_teams if team.short_name in filter_teams]
+        list_teams = [
+            team for team in list_teams if team.short_name in filter_teams
+        ]
     with rich.progress.Progress() as progress:
         _task_id: rich.progress.TaskID = progress.add_task(
             "[cyan]Getting team matchlogs from FBRef: ",
@@ -72,7 +80,7 @@ def get_matchlogs(season: Season, filter_teams: list[str] | None = None) -> None
                         content=content,
                         tables=tables,
                         dropna_cols=["match_report"],
-                    ),
+                    )
                 )
                 for i, df in enumerate(dfs):
                     fpath: Path = (
@@ -94,7 +102,9 @@ def get_matchlogs(season: Season, filter_teams: list[str] | None = None) -> None
                         )
                     save_pandas(df, fpath)
                 progress.update(task_id=_task_id, advance=1)
-    logger.info("Team matchlogs fetch completed for Season: {}", season.fbref_name)
+    logger.info(
+        "Team matchlogs fetch completed for Season: {}", season.fbref_name
+    )
 
 
 if __name__ == "__main__":
