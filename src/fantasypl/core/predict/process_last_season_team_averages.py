@@ -11,8 +11,7 @@ from fantasypl.config.constants import (
     FBREF_LEAGUE_OPTA_STRENGTH_DICT,
 )
 from fantasypl.config.schemas import Season, Seasons
-from fantasypl.utils import save_pandas
-
+from fantasypl.utils import save_pandas, get_list_teams
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -84,10 +83,6 @@ def build_team_features_prediction(season: Season) -> None:
         The season under process
 
     """
-    df_formation: pd.DataFrame = pd.read_csv(
-        DATA_FOLDER_FBREF / season.folder / "team_season" / "formations.csv"
-    )
-
     dfs_leagues: list[pd.DataFrame] = []
     for league_id in [9, 10]:
         df_standard: pd.DataFrame = pd.read_csv(
@@ -109,12 +104,19 @@ def build_team_features_prediction(season: Season) -> None:
             league_id,
             "shooting",
             {
+                "header_standard_shots": "shots",
                 "header_standard_shots_on_target": "shots_on_target",
+                "header_standard_average_shot_distance": "average_shot_distance",  # noqa: E501
                 "header_expected_npxg": "npxg",
                 "header_standard_pens_att": "pens_won",
                 "header_standard_pens_made": "pens_scored",
             },
-            ["shots_on_target", "npxg", "pens_won", "pens_scored"],
+            ["shots",
+                    "shots_on_target",
+                    "average_shot_distance",
+                    "npxg",
+                    "pens_won",
+                    "pens_scored"],
         )
 
         df_shooting_vs: pd.DataFrame = process_stat(
@@ -133,10 +135,15 @@ def build_team_features_prediction(season: Season) -> None:
             league_id,
             "passing",
             {
+                "header_passes_total_passes_completed": "passes_completed",
                 "header_expected_pass_xa": "pass_xa",
                 "assisted_shots": "key_passes",
             },
-            ["pass_xa", "key_passes"],
+            ["passes_completed",
+                    "progressive_passes",
+                    "key_passes",
+                    "pass_xa",
+                    "passes_into_final_third"],
         )
 
         df_gca: pd.DataFrame = process_stat(
@@ -147,11 +154,29 @@ def build_team_features_prediction(season: Season) -> None:
             ["sca", "gca"],
         )
 
+        df_gca_vs: pd.DataFrame = process_stat(
+            season,
+            league_id,
+            "gca_against",
+            {"header_sca_sca": "sca_vs", "header_gca_gca": "gca_vs"},
+            ["sca_vs", "gca_vs"],
+        )
+
+        df_possession: pd.DataFrame = process_stat(
+            season,
+            league_id,
+            "possession",
+            {"header_carries_progressive_carries": "progressive_carries"},  # noqa: E501
+            ["progressive_carries"],
+        )
+
         df_misc: pd.DataFrame = process_stat(
             season,
             league_id,
             "misc",
             {
+                "header_performance_ball_recoveries": "ball_recoveries",
+                "header_aerials_aerials_won_pct": "aerials_won_pct",
                 "header_performance_cards_yellow": "yellow_cards",
                 "header_performance_cards_red": "red_cards",
                 "header_performance_fouls": "fouls_conceded",
@@ -159,6 +184,8 @@ def build_team_features_prediction(season: Season) -> None:
                 "header_performance_pens_conceded": "pens_conceded",
             },
             [
+                "ball_recoveries",
+                "aerials_won_pct",
                 "yellow_cards",
                 "red_cards",
                 "fouls_conceded",
@@ -208,6 +235,8 @@ def build_team_features_prediction(season: Season) -> None:
                 df_shooting_vs,
                 df_passing,
                 df_gca,
+                df_gca_vs,
+                df_possession,
                 df_misc,
                 df_misc_vs,
                 df_defense,
@@ -221,11 +250,9 @@ def build_team_features_prediction(season: Season) -> None:
         if dfs_leagues
         else pd.DataFrame()
     )
-    df_formation = df_formation.merge(
-        df_other_stats, on="team", how="left", validate="1:1"
-    )
+    df_other_stats = df_other_stats[df_other_stats["team"].isin([t.fbref_name for t in get_list_teams()])]
     fpath: Path = DATA_FOLDER_FBREF / season.folder / "team_seasonal_stats.csv"
-    save_pandas(df_formation, fpath)
+    save_pandas(df_other_stats, fpath)
     logger.info(
         "Team seasonal averages saved for season: {}", season.fbref_long_name
     )

@@ -71,7 +71,7 @@ def build_predict_features(season: Season, gameweek: int) -> pd.DataFrame:
             | set(cols_static_against_xyc)
             | set(cols_form_for_xpens)
             | set(cols_static_against_xpens)
-            | {"formation", "team", "opponent"}
+            | {"team", "opponent"}
         )
     ]
 
@@ -96,12 +96,6 @@ def build_predict_features(season: Season, gameweek: int) -> pd.DataFrame:
         )
     df_agg = df_agg.set_index("team")
 
-    df_gameweek["formation"] = df_gameweek["team"].apply(
-        lambda x: statistics.mode(df_agg.at[x, "formation"])  # noqa: PD008
-    )
-    df_gameweek["formation_vs"] = df_gameweek["opponent"].apply(
-        lambda x: statistics.mode(df_agg.at[x, "formation"])  # noqa: PD008
-    )
     new_columns_: dict[str, pd.Series] = {}  # type: ignore[type-arg]
     for col in cols_form_for_xgoals + cols_form_for_xyc + cols_form_for_xpens:
         for i in range(1, 6):

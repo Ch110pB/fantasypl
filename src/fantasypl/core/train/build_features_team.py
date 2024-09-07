@@ -22,10 +22,18 @@ if TYPE_CHECKING:
 
 cols_form_for_xgoals: list[str] = [
     "possession",
+    "shots",
     "shots_on_target",
+    "average_shot_distance",
     "npxg",
+    "passes_completed",
+    "progressive_passes",
     "key_passes",
     "pass_xa",
+    "passes_into_final_third",
+    "progressive_carries",
+    "ball_recoveries",
+    "aerials_won_pct",
     "sca",
     "gca",
 ]
@@ -33,10 +41,13 @@ cols_static_against_xgoals: list[str] = [
     "possession",
     "shots_on_target_vs",
     "npxg_vs",
+    "sca_vs",
+    "gca_vs",
     "tackles_won",
     "blocks",
     "interceptions",
     "clearances",
+    "aerials_won_pct",
     "gk_saves",
 ]
 

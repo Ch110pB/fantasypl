@@ -32,8 +32,10 @@ _stat_tables: list[str] = [
     "keeper",
     "shooting",
     "passing",
+    "passing_types",
     "gca",
     "defense",
+    "possession",
     "misc",
 ]
 

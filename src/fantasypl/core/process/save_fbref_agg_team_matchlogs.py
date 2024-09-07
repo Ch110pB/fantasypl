@@ -77,15 +77,13 @@ def process_single_team(
             process_single_stat(
                 folder_structure,
                 "schedule_for",
-                {"opp_formation": "formation_vs"},
+                {},
                 [
                     "opponent",
                     "date",
                     "venue",
                     "result",
                     "possession",
-                    "formation",
-                    "formation_vs",
                 ],
                 ["date", "result"],
             ),
@@ -94,12 +92,22 @@ def process_single_team(
                 "shooting_for",
                 {
                     "header_for_against_date": "date",
+                    "header_standard_shots": "shots",
                     "header_standard_shots_on_target": "shots_on_target",
+                    "header_standard_average_shot_distance": "average_shot_distance",  # noqa: E501
                     "header_standard_pens_att": "pens_won",
                     "header_standard_pens_made": "pens_scored",
                     "header_expected_npxg": "npxg",
                 },
-                ["date", "shots_on_target", "pens_won", "pens_scored", "npxg"],
+                [
+                    "date",
+                    "shots",
+                    "shots_on_target",
+                    "average_shot_distance",
+                    "npxg",
+                    "pens_won",
+                    "pens_scored",
+                ],
                 ["date"],
             ),
             process_single_stat(
@@ -118,9 +126,17 @@ def process_single_team(
                 "passing_for",
                 {
                     "header_for_against_date": "date",
+                    "header_passes_total_passes_completed": "passes_completed",
                     "assisted_shots": "key_passes",
                 },
-                ["date", "key_passes", "pass_xa"],
+                [
+                    "date",
+                    "passes_completed",
+                    "progressive_passes",
+                    "key_passes",
+                    "pass_xa",
+                    "passes_into_final_third",
+                ],
                 ["date"],
             ),
             process_single_stat(
@@ -132,6 +148,17 @@ def process_single_team(
                     "header_gca_types_gca": "gca",
                 },
                 ["date", "sca", "gca"],
+                ["date"],
+            ),
+            process_single_stat(
+                folder_structure,
+                "gca_for",
+                {
+                    "header_for_against_date": "date",
+                    "header_sca_types_sca": "sca_vs",
+                    "header_gca_types_gca": "gca_vs",
+                },
+                ["date", "sca_vs", "gca_vs"],
                 ["date"],
             ),
             process_single_stat(
@@ -153,9 +180,24 @@ def process_single_team(
             ),
             process_single_stat(
                 folder_structure,
+                "possession_for",
+                {
+                    "header_for_against_date": "date",
+                    "header_carries_progressive_carries": "progressive_carries",  # noqa: E501
+                },
+                [
+                    "date",
+                    "progressive_carries",
+                ],
+                ["date"],
+            ),
+            process_single_stat(
+                folder_structure,
                 "misc_for",
                 {
                     "header_for_against_date": "date",
+                    "header_performance_ball_recoveries": "ball_recoveries",
+                    "header_aerials_aerials_won_pct": "aerials_won_pct",
                     "header_performance_cards_yellow": "yellow_cards",
                     "header_performance_cards_red": "red_cards",
                     "header_performance_fouls": "fouls_conceded",
@@ -164,6 +206,8 @@ def process_single_team(
                 },
                 [
                     "date",
+                    "ball_recoveries",
+                    "aerials_won_pct",
                     "yellow_cards",
                     "red_cards",
                     "fouls_conceded",
@@ -246,5 +290,5 @@ def save_aggregate_team_matchlogs(
 
 
 if __name__ == "__main__":
-    # save_aggregate_team_matchlogs(Seasons.SEASON_2324)
+    save_aggregate_team_matchlogs(Seasons.SEASON_2324)
     save_aggregate_team_matchlogs(Seasons.SEASON_2425)

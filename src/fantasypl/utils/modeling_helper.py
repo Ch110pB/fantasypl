@@ -150,9 +150,7 @@ def get_form_data(
     for col in cols:
         shifted: pd.DataFrame = (
             data.groupby(team_or_player)[col]
-            .shift(range(1, 6))
-            .pivot_table()
-            .add_prefix(f"{col}_lag_")
+            .shift(range(1, 6), suffix="_lag")
         )
         data = pd.concat([data, shifted], axis=1)
     return data[

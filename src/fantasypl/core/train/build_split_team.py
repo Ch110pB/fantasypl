@@ -32,22 +32,10 @@ def build_split(season: Season, target_name: str, target_col: str) -> None:
         for col in df.columns
         if ("_lag_" in col) or ("_mean_" in col) or (col == "venue")
     ]
-    _add_select_cols: list[str]
-    match target_name:
-        case "xgoals":
-            _add_select_cols = [target_col, "formation", "formation_vs"]
-        case "xyc" | "xpens":
-            _add_select_cols = [target_col]
-        case _:
-            _add_select_cols = []
+    _add_select_cols: list[str] = [target_col]
 
     df_pd: pd.DataFrame = df[_select_cols + _add_select_cols]
-    categorical_features: list[str]
-    match target_name:
-        case "xgoals":
-            categorical_features = ["venue", "formation", "formation_vs"]
-        case _:
-            categorical_features = ["venue"]
+    categorical_features: list[str] = ["venue"]
     categories: list[list[str]] = [
         df_pd[feature].unique().tolist() for feature in categorical_features
     ]
