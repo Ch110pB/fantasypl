@@ -3,6 +3,7 @@
 import json
 import operator
 from functools import reduce
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +12,7 @@ import numpy.typing as npt
 import pandas as pd
 import requests
 from loguru import logger
+from PIL import Image
 from pulp import (  # type: ignore[import-untyped]
     LpBinary,
     LpProblem,
@@ -19,6 +21,8 @@ from pulp import (  # type: ignore[import-untyped]
 )
 
 from fantasypl.config.constants import (
+    DATA_FOLDER_FPL,
+    FPL_POSITION_ID_DICT,
     MAX_DEF_COUNT,
     MAX_FWD_COUNT,
     MAX_GKP_COUNT,
@@ -36,7 +40,7 @@ from fantasypl.config.constants import (
     TOTAL_MID_COUNT,
 )
 from fantasypl.config.constants.folder_config import ROOT_FOLDER
-from fantasypl.config.schemas import Player, Team
+from fantasypl.config.schemas import Player, Season, Team
 from fantasypl.utils.modeling_helper import get_list_players, get_list_teams
 
 
@@ -456,13 +460,13 @@ def prepare_return_and_log_variables(  # noqa: PLR0913, PLR0917
     bench_3: npt.NDArray[LpVariable],
 ) -> tuple[
     npt.NDArray[np.float32],
-    list[str],
+    list[tuple[str, int]],
     npt.NDArray[np.float32],
     npt.NDArray[np.float32],
     npt.NDArray[np.float32],
     npt.NDArray[np.float32],
-    list[str],
-    str,
+    list[tuple[str, int]],
+    tuple[str, int],
 ]:
     """
 
@@ -505,35 +509,35 @@ def prepare_return_and_log_variables(  # noqa: PLR0913, PLR0917
     selected_players: list[str] = [
         v.name for v in problem.variables() if v.varValue == 1
     ]
-    lineup_players: list[str] = [
-        el.fpl_web_name
+    lineup_players: list[tuple[str, int]] = [
+        (el.fpl_web_name, el.fpl_code)
         for el in _list_players
         if f"l{el.fpl_code}" in selected_players
     ]
-    bench_players: list[str] = (
+    bench_players: list[tuple[str, int]] = (
         [
-            el.fpl_web_name
+            (el.fpl_web_name, el.fpl_code)
             for el in _list_players
             if f"bg{el.fpl_code}" in selected_players
         ]
         + [
-            el.fpl_web_name
+            (el.fpl_web_name, el.fpl_code)
             for el in _list_players
             if f"bf{el.fpl_code}" in selected_players
         ]
         + [
-            el.fpl_web_name
+            (el.fpl_web_name, el.fpl_code)
             for el in _list_players
             if f"bs{el.fpl_code}" in selected_players
         ]
         + [
-            el.fpl_web_name
+            (el.fpl_web_name, el.fpl_code)
             for el in _list_players
             if f"bt{el.fpl_code}" in selected_players
         ]
     )
-    captain_player: str = next(
-        el.fpl_web_name
+    captain_player: tuple[str, int] = next(
+        (el.fpl_web_name, el.fpl_code)
         for el in _list_players
         if f"c{el.fpl_code}" in selected_players
     )
@@ -549,24 +553,112 @@ def prepare_return_and_log_variables(  # noqa: PLR0913, PLR0917
     )
 
 
-def send_discord_message(text: str) -> None:
+def add_team_and_position_to_player(
+    player: tuple[str, int], season: Season
+) -> tuple[str, int, int, str]:
+    """
+
+    Parameters
+    ----------
+    player
+        Tuple containing player FPL web name and FPL code.
+    season
+        The season under process.
+
+    Returns
+    -------
+        A Tuple containing player FPL web name, team FPL code
+        and FPL position.
+    """
+    player_fpl_code: int = player[1]
+    df_fpl_players: pd.DataFrame = pd.read_csv(
+        DATA_FOLDER_FPL / season.folder / "players.csv"
+    )
+    player_team_code: int = (
+        df_fpl_players[df_fpl_players["code"] == player_fpl_code]["team_code"]
+        .to_numpy()
+        .item(0)
+    )
+    player_position_code: int = (
+        df_fpl_players[df_fpl_players["code"] == player_fpl_code][
+            "element_type"
+        ]
+        .to_numpy()
+        .item(0)
+    )
+    return (
+        player[0],
+        player_fpl_code,
+        player_team_code,
+        FPL_POSITION_ID_DICT[player_position_code],
+    )
+
+
+def build_fpl_lineup(
+    players: list[tuple[str, int]], season: Season
+) -> tuple[
+    list[tuple[str, int, int]],
+    list[tuple[str, int, int]],
+    list[tuple[str, int, int]],
+    list[tuple[str, int, int]],
+]:
+    """
+
+    Parameters
+    ----------
+    players
+         List of tuples containing player FPL web name, team
+         FPL code and FPL position.
+    season
+        The season under process.
+
+    Returns
+    -------
+        Lists of players per FPL position.
+
+    """
+    fpl_players: list[tuple[str, int, int, str]] = [
+        add_team_and_position_to_player(pl, season) for pl in players
+    ]
+    fpl_gk: list[tuple[str, int, int]] = [
+        (el[0], el[1], el[2]) for el in fpl_players if el[3] == "GKP"
+    ]
+    fpl_df: list[tuple[str, int, int]] = [
+        (el[0], el[1], el[2]) for el in fpl_players if el[3] == "DEF"
+    ]
+    fpl_mf: list[tuple[str, int, int]] = [
+        (el[0], el[1], el[2]) for el in fpl_players if el[3] == "MID"
+    ]
+    fpl_fw: list[tuple[str, int, int]] = [
+        (el[0], el[1], el[2]) for el in fpl_players if el[3] == "FWD"
+    ]
+    return fpl_gk, fpl_df, fpl_mf, fpl_fw
+
+
+def send_discord_message(text: str, image: Image.Image) -> None:
     """
 
     Parameters
     ----------
     text
         The message to send to Discord.
+    image
+        The image to send to Discord.
 
     """
     with Path.open(ROOT_FOLDER / "discord_authorization.json", "r") as f:
         auth_dict: dict[str, str] = json.load(f)
     url: str = f"https://discord.com/api/v10/channels/{auth_dict["channel_id"]}/messages"
     data: dict[str, str] = {"content": text}
+    image_file_bytes: BytesIO = BytesIO()
+    image.save(image_file_bytes, format="PNG")
+    files = {"file": ("image.png", image_file_bytes.getvalue())}
     headers: dict[str, str] = {"authorization": auth_dict["token"]}
 
     response: requests.Response = requests.post(
         url,
-        json=data,
+        data=data,
+        files=files,
         headers=headers,
         timeout=5,
     )

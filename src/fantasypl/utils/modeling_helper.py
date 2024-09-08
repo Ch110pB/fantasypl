@@ -148,9 +148,8 @@ def get_form_data(
     """
     data = data.sort_values(by="date", ascending=True)
     for col in cols:
-        shifted: pd.DataFrame = (
-            data.groupby(team_or_player)[col]
-            .shift(range(1, 6), suffix="_lag")
+        shifted: pd.Series = data.groupby(team_or_player)[col].shift(  # type: ignore[type-arg]
+            range(1, 6), suffix="_lag"
         )
         data = pd.concat([data, shifted], axis=1)
     return data[

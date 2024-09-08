@@ -1,5 +1,6 @@
 """Exposes all the inner constants for a folder level import."""
 
+from .image_helper import prepare_pitch
 from .modeling_helper import (
     get_fbref_teams,
     get_form_data,
@@ -14,6 +15,7 @@ from .modeling_helper import (
 from .prediction_helper import (
     add_count_constraints,
     add_other_constraints,
+    build_fpl_lineup,
     pad_lists,
     prepare_additional_lp_variables,
     prepare_common_lists_from_df,
@@ -35,6 +37,7 @@ from .web_helper import extract_table, get_content, get_single_table
 __all__ = [
     "add_count_constraints",
     "add_other_constraints",
+    "build_fpl_lineup",
     "extract_table",
     "get_content",
     "get_fbref_teams",
@@ -47,6 +50,7 @@ __all__ = [
     "get_team_gameweek_json_to_df",
     "get_train_test_data",
     "pad_lists",
+    "prepare_pitch",
     "prepare_additional_lp_variables",
     "prepare_common_lists_from_df",
     "prepare_df_for_optimization",

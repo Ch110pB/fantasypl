@@ -10,15 +10,18 @@ from fantasypl.config.constants import (
     MODEL_FOLDER,
     WEIGHTS_DECAYS_BASE,
 )
+from fantasypl.config.schemas import Season, Seasons
 from fantasypl.utils import (
     add_count_constraints,
     add_other_constraints,
+    build_fpl_lineup,
     prepare_common_lists_from_df,
     prepare_df_for_optimization,
     prepare_essential_lp_variables,
     prepare_return_and_log_variables,
     send_discord_message,
 )
+from fantasypl.utils import prepare_pitch
 
 
 if TYPE_CHECKING:
@@ -30,7 +33,7 @@ def find_squad(  # noqa: PLR0914
     budget: int = 1000,
     bench_weights: list[float] | None = None,
     weights_decays_base: list[float] | None = None,
-) -> tuple[list[str], list[str], str]:
+) -> tuple[list[tuple[str, int]], list[tuple[str, int]], tuple[str, int]]:
     """
 
     Parameters
@@ -125,15 +128,13 @@ def find_squad(  # noqa: PLR0914
 
 
 if __name__ == "__main__":
+    this_season: Season = Seasons.SEASON_2425.value
     gw: int = 4
     eleven, subs, cap = find_squad(gw)
     logger.info("Starting Lineup: {}", eleven)
     logger.info("Bench: {}", subs)
     logger.info("Captain: {}", cap)
-    message: str = (
-        f"Optimal Squad:\n"
-        f"Starting Lineup: {", ".join(eleven)}\n"
-        f"Bench: {", ".join(subs)}\n"
-        f"Captain: {cap}"
-    )
-    send_discord_message(message)
+    eleven_players = build_fpl_lineup(eleven, this_season)
+    sub_players = build_fpl_lineup(subs, this_season)
+    pitch = prepare_pitch(eleven_players, sub_players, cap, this_season)
+    send_discord_message("", pitch)

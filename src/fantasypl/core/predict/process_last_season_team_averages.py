@@ -11,7 +11,8 @@ from fantasypl.config.constants import (
     FBREF_LEAGUE_OPTA_STRENGTH_DICT,
 )
 from fantasypl.config.schemas import Season, Seasons
-from fantasypl.utils import save_pandas, get_list_teams
+from fantasypl.utils import get_list_teams, save_pandas
+
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -111,12 +112,14 @@ def build_team_features_prediction(season: Season) -> None:
                 "header_standard_pens_att": "pens_won",
                 "header_standard_pens_made": "pens_scored",
             },
-            ["shots",
-                    "shots_on_target",
-                    "average_shot_distance",
-                    "npxg",
-                    "pens_won",
-                    "pens_scored"],
+            [
+                "shots",
+                "shots_on_target",
+                "average_shot_distance",
+                "npxg",
+                "pens_won",
+                "pens_scored",
+            ],
         )
 
         df_shooting_vs: pd.DataFrame = process_stat(
@@ -139,11 +142,13 @@ def build_team_features_prediction(season: Season) -> None:
                 "header_expected_pass_xa": "pass_xa",
                 "assisted_shots": "key_passes",
             },
-            ["passes_completed",
-                    "progressive_passes",
-                    "key_passes",
-                    "pass_xa",
-                    "passes_into_final_third"],
+            [
+                "passes_completed",
+                "progressive_passes",
+                "key_passes",
+                "pass_xa",
+                "passes_into_final_third",
+            ],
         )
 
         df_gca: pd.DataFrame = process_stat(
@@ -166,7 +171,7 @@ def build_team_features_prediction(season: Season) -> None:
             season,
             league_id,
             "possession",
-            {"header_carries_progressive_carries": "progressive_carries"},  # noqa: E501
+            {"header_carries_progressive_carries": "progressive_carries"},
             ["progressive_carries"],
         )
 
@@ -250,7 +255,9 @@ def build_team_features_prediction(season: Season) -> None:
         if dfs_leagues
         else pd.DataFrame()
     )
-    df_other_stats = df_other_stats[df_other_stats["team"].isin([t.fbref_name for t in get_list_teams()])]
+    df_other_stats = df_other_stats[
+        df_other_stats["team"].isin([t.fbref_name for t in get_list_teams()])
+    ]
     fpath: Path = DATA_FOLDER_FBREF / season.folder / "team_seasonal_stats.csv"
     save_pandas(df_other_stats, fpath)
     logger.info(

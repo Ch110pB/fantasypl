@@ -5,12 +5,14 @@ import statistics
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import numpy as np
 import pandas as pd
 from loguru import logger
 
 from fantasypl.config.constants import (
     DATA_FOLDER_FBREF,
     MODEL_FOLDER,
+    TEAM_PREDICTION_SCALING_FACTORS,
 )
 from fantasypl.config.schemas import Season, Seasons
 from fantasypl.core.train.build_features_team import (
@@ -32,7 +34,6 @@ from fantasypl.utils import (
 
 if TYPE_CHECKING:
     import flaml  # type: ignore[import-untyped]
-    import numpy as np
     import numpy.typing as npt
     import sklearn.compose  # type: ignore[import-untyped]
 
@@ -152,7 +153,13 @@ def predict_for_stat(
 
     final_features: npt.NDArray[np.float32] = preprocessor.transform(features)
     predictions: npt.NDArray[np.float32] = model.predict(final_features)
-    features[target] = predictions
+    predictions_rescaled: npt.NDArray[np.float32] = (
+        TEAM_PREDICTION_SCALING_FACTORS[target]["mean"]
+        + (predictions - np.mean(predictions))
+        * TEAM_PREDICTION_SCALING_FACTORS[target]["std"]
+        / np.std(predictions)
+    )
+    features[target] = predictions_rescaled
     fpath: Path = (
         MODEL_FOLDER
         / "predictions/team"

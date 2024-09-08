@@ -6,10 +6,10 @@ from collections import Counter
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import numpy as np
 import pandas as pd
 import pulp  # type: ignore[import-untyped]
 from loguru import logger
-from scipy.stats import scoreatpercentile  # type: ignore[import-untyped]
 
 from fantasypl.config.constants import (
     BENCH_WEIGHTS_ARRAY,
@@ -23,6 +23,7 @@ from fantasypl.config.schemas import Season, Seasons
 from fantasypl.utils import (
     add_count_constraints,
     add_other_constraints,
+    build_fpl_lineup,
     get_list_players,
     prepare_additional_lp_variables,
     prepare_common_lists_from_df,
@@ -31,10 +32,10 @@ from fantasypl.utils import (
     prepare_return_and_log_variables,
     send_discord_message,
 )
+from fantasypl.utils import prepare_pitch
 
 
 if TYPE_CHECKING:
-    import numpy as np
     import numpy.typing as npt
 
 
@@ -148,7 +149,14 @@ def find_optimal_transfers(  # noqa: PLR0913, PLR0914, PLR0917
     weights_decays_base: list[float] | None = None,
     transfer_penalty_percentile: float | None = None,
     transfer_gain_minimum: float | None = None,
-) -> tuple[list[str], list[str], str, list[str], list[str], list[str]]:
+) -> tuple[
+    list[tuple[str, int]],
+    list[tuple[str, int]],
+    tuple[str, int],
+    list[str],
+    list[str],
+    list[str],
+]:
     """
 
     Parameters
@@ -223,7 +231,7 @@ def find_optimal_transfers(  # noqa: PLR0913, PLR0914, PLR0917
         + (bench_weights[1] * points) @ bench_1
         + (bench_weights[2] * points) @ bench_2
         + (bench_weights[3] * points) @ bench_3
-        - scoreatpercentile(points, transfer_penalty_percentile)
+        - np.percentile(points, transfer_penalty_percentile)
         * sum(transfers_in_hit)
     )
     problem = add_count_constraints(
@@ -350,13 +358,14 @@ if __name__ == "__main__":
     logger.info("Out: {}", out)
     logger.info("In on FT: {}", ft)
     logger.info("In on Hit: {}", hit)
+
+    eleven_players = build_fpl_lineup(eleven, this_season)
+    sub_players = build_fpl_lineup(subs, this_season)
+    pitch = prepare_pitch(eleven_players, sub_players, cap, this_season)
     message: str = (
         f"Optimal Transfers for Current Team:\n"
-        f"Starting Lineup: {", ".join(eleven)}\n"
-        f"Bench: {", ".join(subs)}\n"
-        f"Captain: {cap}\n"
         f"Out: {", ".join(out)}\n"
         f"In on FT: {", ".join(ft)}\n"
         f"In on Hit: {", ".join(hit)}\n"
     )
-    send_discord_message(message)
+    send_discord_message(message, pitch)

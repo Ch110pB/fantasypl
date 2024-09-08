@@ -7,6 +7,12 @@ from .folder_config import (
     MODEL_FOLDER,
     RESOURCE_FOLDER,
 )
+from .image_config import (
+    KIT_IMAGE_HEIGHT,
+    KIT_IMAGE_WIDTH,
+    PITCH_IMAGE_HEIGHT,
+    PITCH_IMAGE_WIDTH,
+)
 from .mapping_config import (
     FBREF_LEAGUE_OPTA_STRENGTH_DICT,
     FBREF_POSITION_MAPPING,
@@ -37,6 +43,7 @@ from .prediction_config import (
     POINTS_GOALS,
     POINTS_GOALS_CONCEDED,
     POINTS_SAVES,
+    TEAM_PREDICTION_SCALING_FACTORS,
     TOTAL_DEF_COUNT,
     TOTAL_FWD_COUNT,
     TOTAL_GKP_COUNT,
@@ -70,6 +77,8 @@ __all__ = [
     "FPL_POSITION_ID_DICT",
     "FPL_SHIRTS_URL",
     "FPL_TEAM_URL",
+    "KIT_IMAGE_HEIGHT",
+    "KIT_IMAGE_WIDTH",
     "MAX_DEF_COUNT",
     "MAX_FWD_COUNT",
     "MAX_GKP_COUNT",
@@ -83,6 +92,8 @@ __all__ = [
     "MIN_MID_COUNT",
     "MODELS",
     "MODEL_FOLDER",
+    "PITCH_IMAGE_HEIGHT",
+    "PITCH_IMAGE_WIDTH",
     "POINTS_CS",
     "POINTS_GOALS",
     "POINTS_GOALS_CONCEDED",
@@ -91,6 +102,7 @@ __all__ = [
     "SEED",
     "SPLITS_CV",
     "TASK",
+    "TEAM_PREDICTION_SCALING_FACTORS",
     "TIME_TRAINING_PLAYER",
     "TIME_TRAINING_TEAM",
     "TOTAL_DEF_COUNT",

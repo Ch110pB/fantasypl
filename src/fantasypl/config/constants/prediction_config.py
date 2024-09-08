@@ -26,6 +26,17 @@ MIN_FWD_COUNT: int = 1
 TOTAL_FWD_COUNT: int = 3
 MAX_SAME_CLUB_COUNT: int = 3
 
+
+TEAM_PREDICTION_SCALING_FACTORS: dict[str, dict[str, float]] = {
+    "xgoals": {"mean": 1.44, "std": 0.64},
+    "xyc": {"mean": 2.17, "std": 1.17},
+    "xpens": {"mean": 0.12, "std": 0.28},
+}
+"""
+The scaling factor for the team-level model predictions
+to better match the true spread of the stats.
+"""
+
 MINUTES_STANDARD_DEVIATION: float = 31.72
 """
 The standard deviation of predicted playing minutes

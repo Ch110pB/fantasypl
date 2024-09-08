@@ -23,6 +23,7 @@ dependencies = [
     "flaml[automl]>=2.2.0",
     "pip>=24.2",
     "pulp>=2.9.0",
+    "pillow>=10.4.0",
 ]
 
 [build-system]
