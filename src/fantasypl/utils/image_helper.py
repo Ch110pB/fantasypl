@@ -60,8 +60,8 @@ def create_kit_with_textbox(  # noqa: PLR0913
     draw.rounded_rectangle(
         xy=[(0, KIT_IMAGE_WIDTH), (KIT_IMAGE_WIDTH, KIT_IMAGE_HEIGHT)],
         radius=10,
-        fill="white",
-        outline="black",
+        fill=(255, 255, 255),
+        outline=(55, 0, 60),
     )
     draw.text(
         (
@@ -69,7 +69,7 @@ def create_kit_with_textbox(  # noqa: PLR0913
             KIT_IMAGE_WIDTH + (KIT_IMAGE_HEIGHT - KIT_IMAGE_WIDTH) // 2,
         ),
         player_name,
-        fill="black",
+        fill=(55, 0, 60),
         anchor="mm",
         font=font,
     )

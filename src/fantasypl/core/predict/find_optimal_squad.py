@@ -137,4 +137,5 @@ if __name__ == "__main__":
     eleven_players = build_fpl_lineup(eleven, this_season)
     sub_players = build_fpl_lineup(subs, this_season)
     pitch = prepare_pitch(eleven_players, sub_players, cap, this_season)
-    send_discord_message("", pitch)
+    message: str = "**Optimal Squad**"
+    send_discord_message(message, pitch)
