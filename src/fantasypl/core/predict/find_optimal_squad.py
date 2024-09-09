@@ -18,10 +18,10 @@ from fantasypl.utils import (
     prepare_common_lists_from_df,
     prepare_df_for_optimization,
     prepare_essential_lp_variables,
+    prepare_pitch,
     prepare_return_and_log_variables,
     send_discord_message,
 )
-from fantasypl.utils import prepare_pitch
 
 
 if TYPE_CHECKING:
