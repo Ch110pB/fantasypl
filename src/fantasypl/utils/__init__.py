@@ -1,6 +1,6 @@
 """Exposes all the inner constants for a folder level import."""
 
-from .image_helper import prepare_pitch
+from .image_helper import prepare_pitch, prepare_transfers
 from .modeling_helper import (
     get_fbref_teams,
     get_form_data,
@@ -56,6 +56,7 @@ __all__ = [
     "prepare_essential_lp_variables",
     "prepare_pitch",
     "prepare_return_and_log_variables",
+    "prepare_transfers",
     "preprocess_data_and_save",
     "process_gameweek_data",
     "save_json",

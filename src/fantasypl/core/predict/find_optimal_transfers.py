@@ -31,6 +31,7 @@ from fantasypl.utils import (
     prepare_essential_lp_variables,
     prepare_pitch,
     prepare_return_and_log_variables,
+    prepare_transfers,
     send_discord_message,
 )
 
@@ -142,7 +143,7 @@ def prepare_data_for_current_team(
     )
 
 
-def find_optimal_transfers(  # noqa: PLR0913, PLR0914, PLR0915, PLR0917
+def find_optimal_transfers(  # noqa: PLR0913, PLR0914, PLR0917
     gameweek: int,
     current_season: Season,
     bench_weights: list[float] | None = None,
@@ -153,9 +154,9 @@ def find_optimal_transfers(  # noqa: PLR0913, PLR0914, PLR0915, PLR0917
     list[tuple[str, int]],
     list[tuple[str, int]],
     tuple[str, int],
-    list[tuple[str, int]],
-    list[tuple[str, int]],
-    list[tuple[str, int]],
+    list[str],
+    list[str],
+    list[str],
 ]:
     """
 
@@ -222,7 +223,9 @@ def find_optimal_transfers(  # noqa: PLR0913, PLR0914, PLR0915, PLR0917
         prepare_essential_lp_variables(players)
     )
 
-    initial_squad,transfers_out,transfers_in_free,transfers_in_hit = prepare_additional_lp_variables(players)
+    initial_squad, transfers_out, transfers_in_free, transfers_in_hit = (
+        prepare_additional_lp_variables(players)
+    )
 
     problem.setObjective(
         points @ (lineup + captain)
@@ -308,18 +311,18 @@ def find_optimal_transfers(  # noqa: PLR0913, PLR0914, PLR0915, PLR0917
     selected_players: list[str] = [
         v.name for v in problem.variables() if v.varValue == 1
     ]
-    transfers_out_players: list[tuple[str, int]] = [
-        (el.fpl_web_name, el.fpl_code)
+    transfers_out_players: list[str] = [
+        el.fpl_web_name
         for el in get_list_players()
         if f"out{el.fpl_code}" in selected_players
     ]
-    transfers_in_free_players: list[tuple[str, int]] = [
-        (el.fpl_web_name, el.fpl_code)
+    transfers_in_free_players: list[str] = [
+        el.fpl_web_name
         for el in get_list_players()
         if f"ft{el.fpl_code}" in selected_players
     ]
-    transfers_in_hit_players: list[tuple[str, int]] = [
-        (el.fpl_web_name, el.fpl_code)
+    transfers_in_hit_players: list[str] = [
+        el.fpl_web_name
         for el in get_list_players()
         if f"hit{el.fpl_code}" in selected_players
     ]
@@ -350,9 +353,7 @@ def find_optimal_transfers(  # noqa: PLR0913, PLR0914, PLR0915, PLR0917
 if __name__ == "__main__":
     gw: int = 4
     this_season: Season = Seasons.SEASON_2425.value
-    eleven, subs, cap, out, ft, hit = find_optimal_transfers(
-        gw, this_season
-    )
+    eleven, subs, cap, out, ft, hit = find_optimal_transfers(gw, this_season)
     logger.info("Starting Lineup: {}", eleven)
     logger.info("Bench: {}", subs)
     logger.info("Captain: {}", cap)
@@ -363,10 +364,11 @@ if __name__ == "__main__":
     eleven_players = build_fpl_lineup(eleven, this_season)
     sub_players = build_fpl_lineup(subs, this_season)
     pitch = prepare_pitch(eleven_players, sub_players, cap, this_season)
-    message: str = (
-        f"Optimal Transfers for Current Team:\n"
-        f"Out on Hit: {", ".join(out)}\n"
-        f"In on FT: {", ".join(ft)}\n"
-        f"In on Hit: {", ".join(hit)}\n"
-    )
-    send_discord_message(message, pitch)
+    message: str
+    if len(out) >= 0:
+        transfers = prepare_transfers(ft + hit, out)
+        message = "**Optimal Transfers for Current Team**"
+        send_discord_message(message, [transfers, pitch])
+    else:
+        message = "**Current Team is optimized. Save your FT**"
+        send_discord_message(message, [pitch])

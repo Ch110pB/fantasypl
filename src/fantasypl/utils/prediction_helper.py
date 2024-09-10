@@ -569,6 +569,7 @@ def add_team_and_position_to_player(
     -------
         A Tuple containing player FPL web name, team FPL code
         and FPL position.
+
     """
     player_fpl_code: int = player[1]
     df_fpl_players: pd.DataFrame = pd.read_csv(
@@ -635,24 +636,26 @@ def build_fpl_lineup(
     return fpl_gk, fpl_df, fpl_mf, fpl_fw
 
 
-def send_discord_message(text: str, image: Image.Image) -> None:
+def send_discord_message(text: str, images: list[Image.Image]) -> None:
     """
 
     Parameters
     ----------
     text
         The message to send to Discord.
-    image
-        The image to send to Discord.
+    images
+        The images to send to Discord.
 
     """
     with Path.open(ROOT_FOLDER / "discord_authorization.json", "r") as f:
         auth_dict: dict[str, str] = json.load(f)
     url: str = f"https://discord.com/api/v10/channels/{auth_dict["channel_id"]}/messages"
     data: dict[str, str] = {"content": text}
-    image_file_bytes: BytesIO = BytesIO()
-    image.save(image_file_bytes, format="PNG")
-    files = {"file": ("image.png", image_file_bytes.getvalue())}
+    files = {}
+    for i, image in enumerate(images, start=1):
+        image_file_bytes: BytesIO = BytesIO()
+        image.save(image_file_bytes, format="PNG")
+        files[f"file{i}"] = (f"image{i}.png", image_file_bytes.getvalue())
     headers: dict[str, str] = {"authorization": auth_dict["token"]}
 
     response: requests.Response = requests.post(

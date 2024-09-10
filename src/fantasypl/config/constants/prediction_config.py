@@ -51,6 +51,7 @@ taking the GW 1 subs, and seeing how many times they have
 featured in the following two weeks, plus any auto-subs
 that have happened.
 """
+
 WEIGHTS_DECAYS_BASE: list[float] = [0.865, 0.585]
 """
 0.48 is the linear regression slope between one week's

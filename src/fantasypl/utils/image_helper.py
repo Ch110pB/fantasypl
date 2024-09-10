@@ -1,8 +1,12 @@
 """Helper functions for creating the FPL team image."""
 
+import math
 import operator
 from functools import reduce
+from itertools import starmap
 
+import numpy as np
+import numpy.typing as npt
 from PIL import Image, ImageDraw, ImageFont
 
 from fantasypl.config.constants import (
@@ -11,6 +15,9 @@ from fantasypl.config.constants import (
     PITCH_IMAGE_HEIGHT,
     PITCH_IMAGE_WIDTH,
     RESOURCE_FOLDER,
+    TRANSFER_BOX_HEIGHT,
+    TRANSFER_BOX_WIDTH,
+    TRANSFER_POINTER_IMAGE_SIZE,
 )
 from fantasypl.config.schemas import Season
 
@@ -169,6 +176,144 @@ def paste_kits_on_pitch(
     return pitch_image
 
 
+def create_transfer_packet(player_in: str, player_out: str) -> Image.Image:
+    """
+
+    Parameters
+    ----------
+    player_in
+        Player name for transferred in player.
+    player_out
+        Player name for transferred out player.
+
+    Returns
+    -------
+        A single transfer in-out image.
+
+    """
+    out_img: Image.Image = (
+        Image.open(RESOURCE_FOLDER / "img" / "sub-off.png")
+        .convert("RGBA")
+        .resize((TRANSFER_POINTER_IMAGE_SIZE, TRANSFER_POINTER_IMAGE_SIZE))
+    )
+    in_img: Image.Image = (
+        Image.open(RESOURCE_FOLDER / "img" / "sub-on.png")
+        .convert("RGBA")
+        .resize((TRANSFER_POINTER_IMAGE_SIZE, TRANSFER_POINTER_IMAGE_SIZE))
+    )
+    font: ImageFont.FreeTypeFont = ImageFont.truetype(
+        RESOURCE_FOLDER / "fonts/PremierLeagueW01-Bold.woff2", size=30
+    )
+
+    image: Image.Image = Image.new(
+        "RGB", (TRANSFER_BOX_WIDTH, TRANSFER_BOX_HEIGHT), (255, 255, 255)
+    )
+    draw: ImageDraw.ImageDraw = ImageDraw.Draw(image)
+
+    player_out_bbox: tuple[int, int, int, int] = draw.textbbox(
+        (0, 0), player_out, font=font
+    )
+    draw.text(
+        (TRANSFER_BOX_WIDTH // 2 - 10, TRANSFER_BOX_HEIGHT // 2),
+        player_out,
+        fill=(55, 0, 60),
+        anchor="ma",
+        font=font,
+    )
+    image.paste(
+        out_img,
+        (
+            TRANSFER_BOX_WIDTH // 2
+            + (player_out_bbox[2] - player_out_bbox[0]) // 2
+            - 7,
+            TRANSFER_BOX_HEIGHT // 2
+            + (player_out_bbox[3] - player_out_bbox[1]) // 2,
+        ),
+        out_img,
+    )
+
+    player_in_bbox: tuple[int, int, int, int] = draw.textbbox(
+        (0, 0), player_in, font=font
+    )
+    draw.text(
+        (TRANSFER_BOX_WIDTH // 2 + 10, TRANSFER_BOX_HEIGHT // 2),
+        player_in,
+        fill=(55, 0, 60),
+        anchor="md",
+        font=font,
+    )
+    image.paste(
+        in_img,
+        (
+            TRANSFER_BOX_WIDTH // 2
+            - (player_in_bbox[2] - player_in_bbox[0]) // 2
+            - TRANSFER_POINTER_IMAGE_SIZE
+            + 7,
+            TRANSFER_BOX_HEIGHT // 2
+            - (player_in_bbox[3] - player_in_bbox[1]) // 2
+            - TRANSFER_POINTER_IMAGE_SIZE,
+        ),
+        in_img,
+    )
+    return image
+
+
+def get_image_grid(
+    rows: int, cols: int, images: list[Image.Image]
+) -> Image.Image:
+    """
+
+    Parameters
+    ----------
+    rows
+        Number of rows in transfer image grid.
+    cols
+        Number of columns in transfer image grid.
+    images
+        List of transfer images
+
+    Returns
+    -------
+        Transfer image grid.
+
+    """
+    image_arrays: list[npt.NDArray[np.int32]] = [
+        np.asarray(img) for img in images
+    ]
+    image_rows: list[npt.NDArray[np.int32]] = [
+        np.hstack(image_arrays[i : i + cols])
+        for i in range(0, rows * cols, cols)
+    ]
+    return Image.fromarray(np.vstack(image_rows))
+
+
+def prepare_transfers(
+    transfers_in: list[str], transfers_out: list[str]
+) -> Image.Image:
+    """
+
+    Parameters
+    ----------
+    transfers_in
+        List of all inbound transfers.
+    transfers_out
+        List of all outbound transfers.
+
+    Returns
+    -------
+        The image with all transfers.
+
+    """
+    images: list[Image.Image] = list(
+        starmap(create_transfer_packet, zip(transfers_in, transfers_out))
+    )
+    if len(images) <= 3:
+        return get_image_grid(len(images), 1, images)
+    rows: int = math.ceil(math.sqrt(len(images)))
+    cols: int = math.ceil(len(images) / rows)
+    return get_image_grid(rows, cols, images)
+
+
 def prepare_pitch(
     eleven_players: tuple[
         list[tuple[str, int, int]],
@@ -206,7 +351,10 @@ def prepare_pitch(
     pitch: Image.Image = Image.open(
         RESOURCE_FOLDER / "img/pitch-default.png"
     ).convert("RGB")
-    pitch = pitch.resize((PITCH_IMAGE_WIDTH, PITCH_IMAGE_HEIGHT))
+    pitch = pitch.crop((216, 0, 2016, PITCH_IMAGE_HEIGHT)).resize((
+        PITCH_IMAGE_WIDTH,
+        PITCH_IMAGE_HEIGHT,
+    ))
     draw: ImageDraw.ImageDraw = ImageDraw.Draw(pitch, mode="RGBA")
     draw.rectangle(
         xy=[
