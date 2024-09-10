@@ -307,7 +307,7 @@ def prepare_transfers(
     images: list[Image.Image] = list(
         starmap(create_transfer_packet, zip(transfers_in, transfers_out))
     )
-    if len(images) <= 3:
+    if len(images) <= 3:  # noqa: PLR2004
         return get_image_grid(len(images), 1, images)
     rows: int = math.ceil(math.sqrt(len(images)))
     cols: int = math.ceil(len(images) / rows)
