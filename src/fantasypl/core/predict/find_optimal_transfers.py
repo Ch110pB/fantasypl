@@ -153,10 +153,9 @@ def find_optimal_transfers(  # noqa: PLR0913, PLR0914, PLR0915, PLR0917
     list[tuple[str, int]],
     list[tuple[str, int]],
     tuple[str, int],
-    list[str],
-    list[str],
-    list[str],
-    list[str],
+    list[tuple[str, int]],
+    list[tuple[str, int]],
+    list[tuple[str, int]],
 ]:
     """
 
@@ -222,13 +221,8 @@ def find_optimal_transfers(  # noqa: PLR0913, PLR0914, PLR0915, PLR0917
     lineup, bench_gk, bench_1, bench_2, bench_3, captain = (
         prepare_essential_lp_variables(players)
     )
-    (
-        initial_squad,
-        transfers_out_free,
-        transfers_out_hit,
-        transfers_in_free,
-        transfers_in_hit,
-    ) = prepare_additional_lp_variables(players)
+
+    initial_squad,transfers_out,transfers_in_free,transfers_in_hit = prepare_additional_lp_variables(players)
 
     problem.setObjective(
         points @ (lineup + captain)
@@ -261,21 +255,18 @@ def find_optimal_transfers(  # noqa: PLR0913, PLR0914, PLR0915, PLR0917
         )
 
     problem.addConstraint(sum(transfers_in_free) <= free_transfers)
-    problem.addConstraint(sum(transfers_out_free) <= free_transfers)
-    problem.addConstraint(sum(transfers_in_free) == sum(transfers_out_free))
-    problem.addConstraint(sum(transfers_in_hit) == sum(transfers_out_hit))
     problem.addConstraint(
-        sell_prices @ (transfers_out_free + transfers_out_hit) + itb
+        sell_prices @ transfers_out + itb
         >= buy_prices @ (transfers_in_free + transfers_in_hit)
     )
     problem.addConstraint(
-        points @ (lineup + bench_gk + bench_1 + bench_2 + bench_3)
-        - points @ initial_squad
+        (points @ (lineup + bench_gk + bench_1 + bench_2 + bench_3))
+        - (points @ initial_squad)
         >= transfer_gain_minimum
     )
 
     transfer_out_in_squad_expressions: npt.NDArray[pulp.LpVariable] = (
-        initial_squad - (transfers_out_free + transfers_out_hit)
+        initial_squad - transfers_out
     )
     for expr in transfer_out_in_squad_expressions:
         problem.addConstraint(expr >= 0)
@@ -290,8 +281,7 @@ def find_optimal_transfers(  # noqa: PLR0913, PLR0914, PLR0915, PLR0917
         + bench_1
         + bench_2
         + bench_3
-        + transfers_out_free
-        + transfers_out_hit
+        + transfers_out
         - initial_squad
         - transfers_in_hit
         - transfers_in_free
@@ -318,23 +308,18 @@ def find_optimal_transfers(  # noqa: PLR0913, PLR0914, PLR0915, PLR0917
     selected_players: list[str] = [
         v.name for v in problem.variables() if v.varValue == 1
     ]
-    transfers_out_free_players: list[str] = [
-        el.fpl_web_name
+    transfers_out_players: list[tuple[str, int]] = [
+        (el.fpl_web_name, el.fpl_code)
         for el in get_list_players()
-        if f"outft{el.fpl_code}" in selected_players
+        if f"out{el.fpl_code}" in selected_players
     ]
-    transfers_out_hit_players: list[str] = [
-        el.fpl_web_name
-        for el in get_list_players()
-        if f"outhit{el.fpl_code}" in selected_players
-    ]
-    transfers_in_free_players: list[str] = [
-        el.fpl_web_name
+    transfers_in_free_players: list[tuple[str, int]] = [
+        (el.fpl_web_name, el.fpl_code)
         for el in get_list_players()
         if f"ft{el.fpl_code}" in selected_players
     ]
-    transfers_in_hit_players: list[str] = [
-        el.fpl_web_name
+    transfers_in_hit_players: list[tuple[str, int]] = [
+        (el.fpl_web_name, el.fpl_code)
         for el in get_list_players()
         if f"hit{el.fpl_code}" in selected_players
     ]
@@ -356,8 +341,7 @@ def find_optimal_transfers(  # noqa: PLR0913, PLR0914, PLR0915, PLR0917
         lineup_players,
         bench_players,
         captain_player,
-        transfers_out_free_players,
-        transfers_out_hit_players,
+        transfers_out_players,
         transfers_in_free_players,
         transfers_in_hit_players,
     )
@@ -366,14 +350,13 @@ def find_optimal_transfers(  # noqa: PLR0913, PLR0914, PLR0915, PLR0917
 if __name__ == "__main__":
     gw: int = 4
     this_season: Season = Seasons.SEASON_2425.value
-    eleven, subs, cap, outft, outhit, ft, hit = find_optimal_transfers(
+    eleven, subs, cap, out, ft, hit = find_optimal_transfers(
         gw, this_season
     )
     logger.info("Starting Lineup: {}", eleven)
     logger.info("Bench: {}", subs)
     logger.info("Captain: {}", cap)
-    logger.info("Out on FT: {}", outft)
-    logger.info("Out on Hit: {}", outhit)
+    logger.info("Out: {}", out)
     logger.info("In on FT: {}", ft)
     logger.info("In on Hit: {}", hit)
 
@@ -382,8 +365,7 @@ if __name__ == "__main__":
     pitch = prepare_pitch(eleven_players, sub_players, cap, this_season)
     message: str = (
         f"Optimal Transfers for Current Team:\n"
-        f"Out on FT: {", ".join(outft)}\n"
-        f"Out on Hit: {", ".join(outhit)}\n"
+        f"Out on Hit: {", ".join(out)}\n"
         f"In on FT: {", ".join(ft)}\n"
         f"In on Hit: {", ".join(hit)}\n"
     )

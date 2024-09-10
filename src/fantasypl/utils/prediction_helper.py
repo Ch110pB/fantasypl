@@ -252,7 +252,6 @@ def prepare_additional_lp_variables(
     npt.NDArray[LpVariable],
     npt.NDArray[LpVariable],
     npt.NDArray[LpVariable],
-    npt.NDArray[LpVariable],
 ]:
     """
 
@@ -266,21 +265,11 @@ def prepare_additional_lp_variables(
         A tuple containing the LP variables for transfers.
 
     """
-    prefixes = ["sq", "outft", "outhit", "ft", "hit"]
-    (
-        initial_squad,
-        transfers_out_free,
-        transfers_out_hit,
-        transfers_in_free,
-        transfers_in_hit,
-    ) = helper_create_lp_variables(prefixes, players)
-    return (
-        initial_squad,
-        transfers_out_free,
-        transfers_out_hit,
-        transfers_in_free,
-        transfers_in_hit,
+    prefixes = ["sq", "out", "ft", "hit"]
+    initial_squad, transfers_out, transfers_in_free, transfers_in_hit = (
+        helper_create_lp_variables(prefixes, players)
     )
+    return initial_squad, transfers_out, transfers_in_free, transfers_in_hit
 
 
 def add_count_constraints(  # noqa: PLR0913, PLR0917
