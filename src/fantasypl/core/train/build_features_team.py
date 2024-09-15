@@ -70,6 +70,7 @@ def get_groups(
     for_or_opp: Literal["for", "opp"],
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
+    Calculate lagged and aggregated features for team model.
 
     Parameters
     ----------
@@ -91,7 +92,9 @@ def get_groups(
 
     """
     grouped_form_df: pd.DataFrame = get_form_data(
-        data=data, cols=cols_form, team_or_player=team_or_opponent
+        data=data,
+        cols=cols_form,
+        team_or_player=team_or_opponent,
     )
     grouped_form_df = grouped_form_df.rename(
         columns={
@@ -99,11 +102,13 @@ def get_groups(
                 col: f"{col}_{for_or_opp}"
                 for col in grouped_form_df.columns
                 if "_lag_" in col
-            }
-        }
+            },
+        },
     )
     grouped_static_df: pd.DataFrame = get_static_data(
-        data=data, cols=cols_static, team_or_player=team_or_opponent
+        data=data,
+        cols=cols_static,
+        team_or_player=team_or_opponent,
     )
     grouped_static_df = grouped_static_df.rename(
         columns={
@@ -111,8 +116,8 @@ def get_groups(
                 col: f"{col}_{for_or_opp}"
                 for col in grouped_static_df.columns
                 if "_mean" in col
-            }
-        }
+            },
+        },
     )
 
     return grouped_form_df, grouped_static_df
@@ -128,6 +133,7 @@ def save_joined_df(  # noqa: PLR0913, PLR0917
     stat: str,
 ) -> None:
     """
+    Save all team model features.
 
     Parameters
     ----------
@@ -149,19 +155,25 @@ def save_joined_df(  # noqa: PLR0913, PLR0917
     """
     df_final_for: pd.DataFrame = reduce(
         lambda left, right: left.merge(
-            right, on=["team", "date"], how="left", validate="1:1"
+            right,
+            on=["team", "date"],
+            how="left",
+            validate="1:1",
         ),
         [data, data_form_for, data_static_for],
     )
 
     df_final_against: pd.DataFrame = reduce(
         lambda left, right: left.merge(
-            right, on=["opponent", "date"], how="left", validate="1:1"
+            right,
+            on=["opponent", "date"],
+            how="left",
+            validate="1:1",
         ),
         [data, data_form_against, data_static_against],
     )
 
-    df_final = df_final_for.merge(
+    df_final: pd.DataFrame = df_final_for.merge(
         df_final_against,
         on=list(set(df_final_for.columns) & set(df_final_against.columns)),
         how="inner",
@@ -180,6 +192,7 @@ def save_joined_df(  # noqa: PLR0913, PLR0917
 
 def get_features(season: Season) -> None:
     """
+    Calculate team models features.
 
     Parameters
     ----------
@@ -198,7 +211,11 @@ def get_features(season: Season) -> None:
         season,
         *get_groups(team_df, cols_form_for_xgoals, [], "team", "for"),
         *get_groups(
-            team_df, [], cols_static_against_xgoals, "opponent", "opp"
+            team_df,
+            [],
+            cols_static_against_xgoals,
+            "opponent",
+            "opp",
         ),
         stat="xgoals",
     )

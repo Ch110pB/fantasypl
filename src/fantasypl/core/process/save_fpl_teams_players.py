@@ -35,6 +35,7 @@ _cols_players: list[str] = [
 
 def save_teams(season: Season) -> None:
     """
+    Save FPL teams from bootstrap.
 
     Parameters
     ----------
@@ -43,10 +44,11 @@ def save_teams(season: Season) -> None:
 
     """
     with Path.open(
-        DATA_FOLDER_FPL / season.folder / "bootstrap.json", "r"
+        DATA_FOLDER_FPL / season.folder / "bootstrap.json",
+        "r",
     ) as f:
         list_teams_dicts: list[dict[str, Any]] | None = json.load(f).get(
-            "teams"
+            "teams",
         )
     if not list_teams_dicts:
         logger.error("The key `team` not present in FPL bootstrap")
@@ -59,6 +61,7 @@ def save_teams(season: Season) -> None:
 
 def save_players(season: Season) -> None:
     """
+    Save FPL players from bootstrap.
 
     Parameters
     ----------
@@ -67,10 +70,11 @@ def save_players(season: Season) -> None:
 
     """
     with Path.open(
-        DATA_FOLDER_FPL / season.folder / "bootstrap.json", "r"
+        DATA_FOLDER_FPL / season.folder / "bootstrap.json",
+        "r",
     ) as f:
         list_players_dicts: list[dict[str, Any]] | None = json.load(f).get(
-            "elements"
+            "elements",
         )
     if not list_players_dicts:
         logger.error("The key `elements` not present in FPL bootstrap")
@@ -86,7 +90,7 @@ def save_players(season: Season) -> None:
         season.fbref_name,
         [
             *set(df_players["code"].tolist())
-            - set(*[FBREF_FPL_PLAYER_REF_DICT.values()])
+            - set(*[FBREF_FPL_PLAYER_REF_DICT.values()]),
         ],
     )
     save_pandas(df=df_players, fpath=fpath)

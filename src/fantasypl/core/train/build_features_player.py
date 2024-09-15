@@ -30,9 +30,13 @@ cols_form_for_xsaves: list[str] = ["gk_saves", "gk_psxg"]
 
 
 def save_player_joined_df(
-    data: pd.DataFrame, season: Season, cols_form: list[str], stat: str
+    data: pd.DataFrame,
+    season: Season,
+    cols_form: list[str],
+    stat: str,
 ) -> None:
     """
+    Save all player model features.
 
     Parameters
     ----------
@@ -58,10 +62,15 @@ def save_player_joined_df(
             + data["clearances"]
         )
     grouped_form_data: pd.DataFrame = get_form_data(
-        data=data, cols=cols_form, team_or_player="player"
+        data=data,
+        cols=cols_form,
+        team_or_player="player",
     )
     df_final: pd.DataFrame = data.merge(
-        grouped_form_data, how="left", on=["player", "date"], validate="m:m"
+        grouped_form_data,
+        how="left",
+        on=["player", "date"],
+        validate="m:m",
     )
     positions: dict[str, str] = (
         df_final.groupby("player")["short_position"]
@@ -70,7 +79,7 @@ def save_player_joined_df(
         .to_dict()
     )
     df_final["short_position"] = df_final["short_position"].fillna(
-        df_final["player"].map(positions)
+        df_final["player"].map(positions),
     )
     for position in ["GK", "DF", "MF", "FW"]:
         df_ = (
@@ -91,6 +100,7 @@ def save_player_joined_df(
 
 def get_players_training_data(season: Season) -> None:
     """
+    Calculate player models training data.
 
     Parameters
     ----------

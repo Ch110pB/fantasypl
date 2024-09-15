@@ -9,6 +9,7 @@ from fantasypl.utils import save_json
 
 def get_all_transfers(team_id: int, gameweek: int) -> None:
     """
+    Get FPL squad transfers data.
 
     Parameters
     ----------
@@ -32,6 +33,7 @@ def get_all_transfers(team_id: int, gameweek: int) -> None:
 
 def get_current_team(team_id: int, gameweek: int) -> None:
     """
+    Get FPL current squad data.
 
     Parameters
     ----------

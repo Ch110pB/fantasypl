@@ -1,4 +1,4 @@
-"""Functions for getting FBRef match details"""
+"""Functions for getting FBRef match details."""
 
 import asyncio
 from pathlib import Path
@@ -30,9 +30,14 @@ _tables: list[str] = [
 
 
 def get_fpath(
-    season: Season, team_fbref_id: str, date: str, tables: list[str], j: int
+    season: Season,
+    team_fbref_id: str,
+    date: str,
+    tables: list[str],
+    j: int,
 ) -> Path:
     """
+    Get the file save path for a given season and team and date.
 
     Parameters
     ----------
@@ -79,6 +84,7 @@ def get_fpath(
 
 def get_matches(season: Season) -> None:
     """
+    Get the FBRef match stats.
 
     Parameters
     ----------
@@ -88,7 +94,7 @@ def get_matches(season: Season) -> None:
     """
     logger.info("Downloading match data for season {}", season.fbref_name)
     df_links: pd.DataFrame = pd.read_csv(
-        DATA_FOLDER_FBREF / season.folder / "match_links.csv"
+        DATA_FOLDER_FBREF / season.folder / "match_links.csv",
     )
 
     with rich.progress.Progress() as progress:
@@ -110,18 +116,22 @@ def get_matches(season: Season) -> None:
             ]
             content: str = get_content(url=f"{FBREF_BASE_URL}/{match_link}")
             dfs_home: list[pd.DataFrame] = asyncio.run(
-                get_single_table(content=content, tables=tables_home)
+                get_single_table(content=content, tables=tables_home),
             )
             if not dfs_home:
                 logger.error(
-                    "Team {} Error on Match: {}", home_team, match_link
+                    "Team {} Error on Match: {}",
+                    home_team,
+                    match_link,
                 )
             dfs_away: list[pd.DataFrame] = asyncio.run(
-                get_single_table(content=content, tables=tables_away)
+                get_single_table(content=content, tables=tables_away),
             )
             if not dfs_away:
                 logger.error(
-                    "Team {} Error on Match: {}", away_team, match_link
+                    "Team {} Error on Match: {}",
+                    away_team,
+                    match_link,
                 )
             df: pd.DataFrame
             j: int

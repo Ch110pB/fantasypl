@@ -1,6 +1,6 @@
 """Functions to predict team-level for each gameweek."""
 
-import pickle
+import pickle  # noqa: S403
 import statistics
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -27,7 +27,6 @@ from fantasypl.utils import (
     get_list_teams,
     get_team_gameweek_json_to_df,
     pad_lists,
-    process_gameweek_data,
     save_pandas,
 )
 
@@ -43,6 +42,7 @@ last_season: Season = Seasons.SEASON_2324.value
 
 def build_predict_features(season: Season, gameweek: int) -> pd.DataFrame:
     """
+    Create dataframe containing all team features.
 
     Parameters
     ----------
@@ -56,7 +56,11 @@ def build_predict_features(season: Season, gameweek: int) -> pd.DataFrame:
         A dataframe with all the features.
 
     """
-    df_gameweek = process_gameweek_data(gameweek)
+    df_gameweek: pd.DataFrame = pd.read_csv(
+        MODEL_FOLDER
+        / "predictions/team"
+        / f"gameweek_{gameweek}/fixtures.csv",
+    )
 
     df_season: pd.DataFrame = get_team_gameweek_json_to_df(season)
     df_season["team"] = [team.fbref_id for team in df_season["team"]]
@@ -72,12 +76,12 @@ def build_predict_features(season: Season, gameweek: int) -> pd.DataFrame:
             | set(cols_static_against_xyc)
             | set(cols_form_for_xpens)
             | set(cols_static_against_xpens)
-            | {"team", "opponent"}
+            | {"team", "opponent"},
         )
     ]
 
     df_prev: pd.DataFrame = pd.read_csv(
-        DATA_FOLDER_FBREF / last_season.folder / "team_seasonal_stats.csv"
+        DATA_FOLDER_FBREF / last_season.folder / "team_seasonal_stats.csv",
     )
     df_prev["team"] = [
         next(el.fbref_id for el in get_list_teams() if el.fbref_name == x)
@@ -93,7 +97,8 @@ def build_predict_features(season: Season, gameweek: int) -> pd.DataFrame:
     )
     for col in cols:
         df_agg[col] = df_agg.apply(
-            lambda row, c=col: pad_lists(row, df_prev, c, "team"), axis=1
+            lambda row, c=col: pad_lists(row, df_prev, c, "team"),
+            axis=1,
         )
     df_agg = df_agg.set_index("team")
 
@@ -124,9 +129,12 @@ def build_predict_features(season: Season, gameweek: int) -> pd.DataFrame:
 
 
 def predict_for_stat(
-    features: pd.DataFrame, target: str, gameweek: int
+    features: pd.DataFrame,
+    target: str,
+    gameweek: int,
 ) -> None:
     """
+    Save the team stat predictions.
 
     Parameters
     ----------
@@ -142,14 +150,14 @@ def predict_for_stat(
         MODEL_FOLDER / last_season.folder / f"model_team_{target}/model.pkl",
         "rb",
     ) as fl:
-        model: flaml.AutoML = pickle.load(fl)
+        model: flaml.AutoML = pickle.load(fl)  # noqa: S301
     with Path.open(
         MODEL_FOLDER
         / last_season.folder
         / f"model_team_{target}/preprocessor.pkl",
         "rb",
     ) as fl:
-        preprocessor: sklearn.compose.ColumnTransformer = pickle.load(fl)
+        preprocessor: sklearn.compose.ColumnTransformer = pickle.load(fl)  # noqa: S301
 
     final_features: npt.NDArray[np.float32] = preprocessor.transform(features)
     predictions: npt.NDArray[np.float32] = model.predict(final_features)

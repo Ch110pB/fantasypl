@@ -1,4 +1,4 @@
-"""Helper functions for creating the FPL team image."""
+"""Helper functions for creating the FPL team images."""
 
 import math
 import operator
@@ -10,6 +10,7 @@ import numpy.typing as npt
 from PIL import Image, ImageDraw, ImageFont
 
 from fantasypl.config.constants import (
+    BENCH_VERTICAL_POSITION,
     KIT_IMAGE_HEIGHT,
     KIT_IMAGE_WIDTH,
     PITCH_IMAGE_HEIGHT,
@@ -32,35 +33,37 @@ def create_kit_with_textbox(  # noqa: PLR0913
     captain_player_code: int,
 ) -> Image.Image:
     """
+    Build the kit image with player name.
 
     Parameters
     ----------
     team_code
-        FPL Team Code.
+        FPL team Code.
     player_code
-        FPL Player Code.
+        FPL player Code.
     player_name
-        FPL Player web name.
+        FPL player web name.
     season
         The season under process.
     is_gk
-        Boolean if goalkeeper kits are to be used.
+        Boolean for whether goalkeeper kits to be picked.
     captain_player_code
-        The captain.
+        FPL player code of the captain.
 
     Returns
     -------
-        A image of the team kit with the player name.
+        An image of the team kit with the player name.
 
     """
     font: ImageFont.FreeTypeFont = ImageFont.truetype(
-        RESOURCE_FOLDER / "fonts/PremierLeagueW01-Bold.woff2", size=30
+        RESOURCE_FOLDER / "fonts/PremierLeagueW01-Bold.woff2",
+        size=30,
     )
-    shirt_name: str = (
+    shirt: str = (
         f"shirt_{team_code}_gk.png" if is_gk else f"shirt_{team_code}.png"
     )
     kit_image: Image.Image = Image.open(
-        RESOURCE_FOLDER / season.folder / "shirts" / shirt_name
+        RESOURCE_FOLDER / season.folder / "shirts" / shirt,
     ).convert("RGBA")
 
     draw: ImageDraw.ImageDraw = ImageDraw.Draw(kit_image)
@@ -81,11 +84,14 @@ def create_kit_with_textbox(  # noqa: PLR0913
         font=font,
     )
     if player_code == captain_player_code:
-        captain_image: Image.Image = Image.open(
-            RESOURCE_FOLDER / "img/captain.png"
-        ).convert("RGBA")
-        captain_image = captain_image.resize((35, 35))
-        kit_image.paste(captain_image)
+        captain_image: Image.Image = (
+            Image.open(
+                RESOURCE_FOLDER / "img/captain.png",
+            )
+            .convert("RGBA")
+            .resize((35, 35))
+        )
+        kit_image.paste(captain_image, (0, 0), captain_image)
     return kit_image
 
 
@@ -97,6 +103,7 @@ def paste_kits_on_pitch(
     season: Season,
 ) -> Image.Image:
     """
+    Paste the kits for a vertical position onto the pitch image.
 
     Parameters
     ----------
@@ -113,15 +120,11 @@ def paste_kits_on_pitch(
 
     Returns
     -------
-        The pitch image with the elements.
+        The pitch image with the elements pasted in.
 
     """
     i: int
-    element: tuple[str, int, int]
-    for i, element in enumerate(list_elements):
-        player_name: str
-        team_code: int
-        player_name, player_code, team_code = element
+    for i, (player_name, player_code, team_code) in enumerate(list_elements):
         kit_image: Image.Image
         if vertical_position in {1, 2, 3}:
             kit_image = create_kit_with_textbox(
@@ -132,22 +135,15 @@ def paste_kits_on_pitch(
                 is_gk=False,
                 captain_player_code=captain[1],
             )
-        elif vertical_position == 0:
+        elif vertical_position == 0 or (
+            vertical_position == BENCH_VERTICAL_POSITION and i == 0
+        ):
             kit_image = create_kit_with_textbox(
                 team_code,
                 player_code,
                 player_name,
                 season,
                 is_gk=True,
-                captain_player_code=captain[1],
-            )
-        elif i > 0:
-            kit_image = create_kit_with_textbox(
-                team_code,
-                player_code,
-                player_name,
-                season,
-                is_gk=False,
                 captain_player_code=captain[1],
             )
         else:
@@ -156,7 +152,7 @@ def paste_kits_on_pitch(
                 player_code,
                 player_name,
                 season,
-                is_gk=True,
+                is_gk=False,
                 captain_player_code=captain[1],
             )
         pitch_image.paste(
@@ -178,13 +174,14 @@ def paste_kits_on_pitch(
 
 def create_transfer_packet(player_in: str, player_out: str) -> Image.Image:
     """
+    Build the transfer packet for one transfer.
 
     Parameters
     ----------
     player_in
-        Player name for transferred in player.
+        Player name for the transferred in player.
     player_out
-        Player name for transferred out player.
+        Player name for the transferred out player.
 
     Returns
     -------
@@ -202,16 +199,21 @@ def create_transfer_packet(player_in: str, player_out: str) -> Image.Image:
         .resize((TRANSFER_POINTER_IMAGE_SIZE, TRANSFER_POINTER_IMAGE_SIZE))
     )
     font: ImageFont.FreeTypeFont = ImageFont.truetype(
-        RESOURCE_FOLDER / "fonts/PremierLeagueW01-Bold.woff2", size=30
+        RESOURCE_FOLDER / "fonts/PremierLeagueW01-Bold.woff2",
+        size=30,
     )
 
     image: Image.Image = Image.new(
-        "RGB", (TRANSFER_BOX_WIDTH, TRANSFER_BOX_HEIGHT), (255, 255, 255)
+        "RGB",
+        (TRANSFER_BOX_WIDTH, TRANSFER_BOX_HEIGHT),
+        (255, 255, 255),
     )
     draw: ImageDraw.ImageDraw = ImageDraw.Draw(image)
 
     player_out_bbox: tuple[int, int, int, int] = draw.textbbox(
-        (0, 0), player_out, font=font
+        (0, 0),
+        player_out,
+        font=font,
     )
     draw.text(
         (TRANSFER_BOX_WIDTH // 2 - 10, TRANSFER_BOX_HEIGHT // 2),
@@ -233,7 +235,9 @@ def create_transfer_packet(player_in: str, player_out: str) -> Image.Image:
     )
 
     player_in_bbox: tuple[int, int, int, int] = draw.textbbox(
-        (0, 0), player_in, font=font
+        (0, 0),
+        player_in,
+        font=font,
     )
     draw.text(
         (TRANSFER_BOX_WIDTH // 2 + 10, TRANSFER_BOX_HEIGHT // 2),
@@ -259,9 +263,12 @@ def create_transfer_packet(player_in: str, player_out: str) -> Image.Image:
 
 
 def get_image_grid(
-    rows: int, cols: int, images: list[Image.Image]
+    rows: int,
+    cols: int,
+    images: list[Image.Image],
 ) -> Image.Image:
     """
+    Orient the transfer images for a given grid size.
 
     Parameters
     ----------
@@ -288,9 +295,11 @@ def get_image_grid(
 
 
 def prepare_transfers(
-    transfers_in: list[str], transfers_out: list[str]
+    transfers_in: list[str],
+    transfers_out: list[str],
 ) -> Image.Image:
     """
+    Build the transfers image depending on number of transfers.
 
     Parameters
     ----------
@@ -305,7 +314,10 @@ def prepare_transfers(
 
     """
     images: list[Image.Image] = list(
-        starmap(create_transfer_packet, zip(transfers_in, transfers_out))
+        starmap(
+            create_transfer_packet,
+            zip(transfers_in, transfers_out, strict=True),
+        ),
     )
     if len(images) <= 3:  # noqa: PLR2004
         return get_image_grid(len(images), 1, images)
@@ -331,6 +343,7 @@ def prepare_pitch(
     season: Season,
 ) -> Image.Image:
     """
+    Build the final squad image with all the players on the pitch.
 
     Parameters
     ----------
@@ -348,13 +361,17 @@ def prepare_pitch(
         The pitch with all players.
 
     """
-    pitch: Image.Image = Image.open(
-        RESOURCE_FOLDER / "img/pitch-default.png"
-    ).convert("RGB")
-    pitch = pitch.crop((216, 0, 2016, PITCH_IMAGE_HEIGHT)).resize((
-        PITCH_IMAGE_WIDTH,
-        PITCH_IMAGE_HEIGHT,
-    ))
+    pitch: Image.Image = (
+        Image.open(
+            RESOURCE_FOLDER / "img/pitch-default.png",
+        )
+        .convert("RGB")
+        .crop((216, 0, 2016, PITCH_IMAGE_HEIGHT))
+        .resize((
+            PITCH_IMAGE_WIDTH,
+            PITCH_IMAGE_HEIGHT,
+        ))
+    )
     draw: ImageDraw.ImageDraw = ImageDraw.Draw(pitch, mode="RGBA")
     draw.rectangle(
         xy=[
@@ -369,8 +386,14 @@ def prepare_pitch(
         fill=(46, 139, 87, int(255 * 0.8)),
     )
 
+    i: int
+    pos: list[tuple[str, int, int]]
     for i, pos in enumerate(eleven_players):
         pitch = paste_kits_on_pitch(pitch, i, pos, captain_player, season)
     return paste_kits_on_pitch(
-        pitch, 4, reduce(operator.add, sub_players), captain_player, season
+        pitch,
+        4,
+        reduce(operator.add, sub_players),
+        captain_player,
+        season,
     )

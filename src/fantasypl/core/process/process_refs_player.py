@@ -19,6 +19,7 @@ from fantasypl.utils import save_json
 
 def get_player_references(season: Season) -> None:
     """
+    Save the player references JSON.
 
     Parameters
     ----------
@@ -30,14 +31,14 @@ def get_player_references(season: Season) -> None:
     dfs: list[pd.DataFrame] = []
     for s in [Seasons.SEASON_2324.value, Seasons.SEASON_2425.value]:
         df_fpl_players: pd.DataFrame = pd.read_csv(
-            DATA_FOLDER_FPL / s.folder / "players.csv"
+            DATA_FOLDER_FPL / s.folder / "players.csv",
         )
         df_fpl_players = df_fpl_players.rename(
             columns={
                 "code": "fpl_code",
                 "full_name": "fpl_full_name",
                 "web_name": "fpl_web_name",
-            }
+            },
         )[["fpl_code", "fpl_full_name", "fpl_web_name"]]
         dfs.append(df_fpl_players)
     df_fpl: pd.DataFrame = (
@@ -50,7 +51,8 @@ def get_player_references(season: Season) -> None:
         v: k for k, v in FBREF_FPL_PLAYER_REF_DICT.items()
     })
     player_ids: dict[str, str] = dict.fromkeys(
-        df_fpl["fbref_id"].dropna().tolist(), ""
+        df_fpl["fbref_id"].dropna().tolist(),
+        "",
     )
     for k in rich.progress.track(player_ids, "Reading FBRef player JSONs"):
         with Path.open(

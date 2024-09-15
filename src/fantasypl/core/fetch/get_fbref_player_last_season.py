@@ -38,9 +38,11 @@ _tables: list[str] = [
 
 
 def get_player_season(
-    season: Season, filter_players: list[str] | None = None
+    season: Season,
+    filter_players: list[str] | None = None,
 ) -> None:
     """
+    Get the seasonal FBRef stats for a list of players.
 
     Parameters
     ----------
@@ -54,11 +56,12 @@ def get_player_season(
     if filter_players is not None:
         list_players = filter_players.copy()
     for player_id in rich.progress.track(
-        list_players, description="Getting player pages from FBRef: "
+        list_players,
+        description="Getting player pages from FBRef: ",
     ):
         try:
             content: str = get_content(
-                f"{FBREF_BASE_URL}/players/{player_id}/"
+                f"{FBREF_BASE_URL}/players/{player_id}/",
             )
             tree: html.HtmlElement = html.fromstring(content)
             infobox: html.HtmlElement = next(
@@ -79,7 +82,7 @@ def get_player_season(
                 .replace("Position: ", "")
             )
             dfs: list[pd.DataFrame] = asyncio.run(
-                get_single_table(content=content, tables=_tables)
+                get_single_table(content=content, tables=_tables),
             )
             for j, df in enumerate(dfs):
                 fpath: Path = (

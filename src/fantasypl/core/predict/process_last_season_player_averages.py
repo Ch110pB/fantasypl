@@ -25,6 +25,7 @@ def process_stat(  # noqa: PLR0913, PLR0917
     game_count_col: str = "minutes_90s",
 ) -> pd.DataFrame:
     """
+    Process player stats from last season.
 
     Parameters
     ----------
@@ -51,7 +52,7 @@ def process_stat(  # noqa: PLR0913, PLR0917
             DATA_FOLDER_FBREF
             / season.folder
             / "player_season"
-            / f"{player_id}_{stat}.csv"
+            / f"{player_id}_{stat}.csv",
         )
     except pd.errors.EmptyDataError:
         return pd.DataFrame([{"player": player_id, **dict.fromkeys(cols, 0)}])
@@ -79,26 +80,27 @@ def process_stat(  # noqa: PLR0913, PLR0917
                 else 0.0,
                 axis=1,
             )
-        df_stats[col] = df_stats.apply(
-            lambda row, c=col: row[c]
+        df_stats[col] = (
+            df_stats[col]
             * (
-                FBREF_LEAGUE_OPTA_STRENGTH_DICT[
-                    row["country"] + "_" + row["comp_level"]
-                ]
+                (df_stats["country"] + "_" + df_stats["comp_level"]).map(
+                    FBREF_LEAGUE_OPTA_STRENGTH_DICT
+                )
             )
             ** 2
-            / (FBREF_LEAGUE_OPTA_STRENGTH_DICT["eng ENG_1. Premier League"])
-            ** 2,
-            axis=1,
+            / FBREF_LEAGUE_OPTA_STRENGTH_DICT["eng ENG_1. Premier League"] ** 2
         )
         df_stats[col] = df_stats[col].mean()
     return df_stats.drop(
-        columns=["country", "comp_level", game_count_col]
+        columns=["country", "comp_level", game_count_col],
     ).head(1)
 
 
-def build_stats(season: Season, current_season: Season) -> None:  # noqa: PLR0914
+def build_players_features_prediction(  # noqa: PLR0914
+    season: Season, current_season: Season
+) -> None:
     """
+    Build player aggregated stats from last season.
 
     Parameters
     ----------
@@ -109,7 +111,7 @@ def build_stats(season: Season, current_season: Season) -> None:  # noqa: PLR091
 
     """
     df_fpl_players: pd.DataFrame = pd.read_csv(
-        DATA_FOLDER_FPL / current_season.folder / "players.csv"
+        DATA_FOLDER_FPL / current_season.folder / "players.csv",
     )[["code"]]
     df_fpl_players["player"] = [
         next(
@@ -137,7 +139,7 @@ def build_stats(season: Season, current_season: Season) -> None:  # noqa: PLR091
                 {
                     "player": player,
                     "short_position": str(dict_["position"])[:2],
-                }
+                },
             ])
         except FileNotFoundError:
             continue
@@ -240,7 +242,10 @@ def build_stats(season: Season, current_season: Season) -> None:  # noqa: PLR091
 
         df_player: pd.DataFrame = reduce(
             lambda left, right: left.merge(
-                right, on=["player"], how="left", validate="1:1"
+                right,
+                on=["player"],
+                how="left",
+                validate="1:1",
             ),
             [
                 df_,
@@ -270,7 +275,10 @@ def build_stats(season: Season, current_season: Season) -> None:  # noqa: PLR091
         + df_all_stats["clearances"]
     )
     df_fpl_players = df_fpl_players.merge(
-        df_all_stats, on="player", how="left", validate="1:1"
+        df_all_stats,
+        on="player",
+        how="left",
+        validate="1:1",
     )
     fpath: Path = (
         DATA_FOLDER_FBREF / season.folder / "player_seasonal_stats.csv"
@@ -279,4 +287,6 @@ def build_stats(season: Season, current_season: Season) -> None:  # noqa: PLR091
 
 
 if __name__ == "__main__":
-    build_stats(Seasons.SEASON_2324.value, Seasons.SEASON_2425.value)
+    build_players_features_prediction(
+        Seasons.SEASON_2324.value, Seasons.SEASON_2425.value
+    )

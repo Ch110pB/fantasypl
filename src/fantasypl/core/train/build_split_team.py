@@ -10,6 +10,7 @@ from fantasypl.utils import preprocess_data_and_save
 
 def build_split(season: Season, target_name: str, target_col: str) -> None:
     """
+    Save team model train-test splits and preprocessor.
 
     Parameters
     ----------
@@ -25,7 +26,7 @@ def build_split(season: Season, target_name: str, target_col: str) -> None:
         DATA_FOLDER_FBREF
         / season.folder
         / "training"
-        / f"teams_{target_name}_features.csv"
+        / f"teams_{target_name}_features.csv",
     )
     _select_cols: list[str] = [
         col
@@ -49,7 +50,8 @@ def build_split(season: Season, target_name: str, target_col: str) -> None:
         season=season,
     )
     logger.info(
-        "Train-test splits and preprocessor saved for team {}", target_name
+        "Train-test splits and preprocessor saved for team {}",
+        target_name,
     )
 
 

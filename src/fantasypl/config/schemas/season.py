@@ -11,7 +11,7 @@ class Season(BaseModel):
 
     Attributes
     ----------
-        folder: Folder marker for season.
+        folder: Folder name for season.
         fbref_name: Season short name in FBRef.
         fbref_long_name: Season full name in FBRef.
 
@@ -33,8 +33,12 @@ class Seasons(Enum):
     """
 
     SEASON_2324 = Season(
-        folder="2324", fbref_name="2023-24", fbref_long_name="2023-2024"
+        folder="2324",
+        fbref_name="2023-24",
+        fbref_long_name="2023-2024",
     )
     SEASON_2425 = Season(
-        folder="2425", fbref_name="2024-25", fbref_long_name="2024-2025"
+        folder="2425",
+        fbref_name="2024-25",
+        fbref_long_name="2024-2025",
     )

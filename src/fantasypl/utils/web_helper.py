@@ -13,6 +13,7 @@ from lxml import html
 
 def get_content(url: str, delay: int = 8, timeout: int = 15) -> str:
     """
+    Get the contents of a web page.
 
     Parameters
     ----------
@@ -46,6 +47,7 @@ def extract_table(
     dropna_cols: list[str] | None = None,
 ) -> pd.DataFrame:
     """
+    Extract the table from the web page content given the table ID.
 
     Parameters
     ----------
@@ -119,7 +121,7 @@ async def extract_table_async(
     dropna_cols: list[str] | None = None,
 ) -> pd.DataFrame:
     """
-    Asynchronous version of extract_table().
+    Extract the table asynchronously.
 
     Returns
     -------
@@ -143,8 +145,7 @@ async def get_single_table(
     dropna_cols: list[str] | None = None,
 ) -> list[pd.DataFrame]:
     """
-    Merges the results from extract table async into a list
-    of pandas dataframes.
+    Merge the results into a list of pandas dataframes.
 
     Returns
     -------

@@ -8,6 +8,7 @@ from .folder_config import (
     RESOURCE_FOLDER,
 )
 from .image_config import (
+    BENCH_VERTICAL_POSITION,
     KIT_IMAGE_HEIGHT,
     KIT_IMAGE_WIDTH,
     PITCH_IMAGE_HEIGHT,
@@ -67,6 +68,7 @@ from .web_config import (
 
 
 __all__ = [
+    "BENCH_VERTICAL_POSITION",
     "BENCH_WEIGHTS_ARRAY",
     "DATA_FOLDER_FBREF",
     "DATA_FOLDER_FPL",

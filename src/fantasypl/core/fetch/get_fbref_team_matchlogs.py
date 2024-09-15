@@ -10,7 +10,7 @@ from fantasypl.config.constants import (
     DATA_FOLDER_FBREF,
     FBREF_BASE_URL,
 )
-from fantasypl.config.schemas import Season, Seasons
+from fantasypl.config.schemas import Season, Seasons, Team
 from fantasypl.utils import (
     get_content,
     get_list_teams,
@@ -41,9 +41,11 @@ _stat_tables: list[str] = [
 
 
 def get_matchlogs(
-    season: Season, filter_teams: list[str] | None = None
+    season: Season,
+    filter_teams: list[str] | None = None,
 ) -> None:
     """
+    Get FBRef team matchlogs for a season.
 
     Parameters
     ----------
@@ -53,7 +55,7 @@ def get_matchlogs(
          The optional list of team short names.
 
     """
-    list_teams = get_list_teams()
+    list_teams: list[Team] = get_list_teams()
     if filter_teams is not None:
         list_teams = [
             team for team in list_teams if team.short_name in filter_teams
@@ -82,8 +84,10 @@ def get_matchlogs(
                         content=content,
                         tables=tables,
                         dropna_cols=["match_report"],
-                    )
+                    ),
                 )
+                i: int
+                df: pd.DataFrame
                 for i, df in enumerate(dfs):
                     fpath: Path = (
                         DATA_FOLDER_FBREF
@@ -105,7 +109,8 @@ def get_matchlogs(
                     save_pandas(df, fpath)
                 progress.update(task_id=_task_id, advance=1)
     logger.info(
-        "Team matchlogs fetch completed for Season: {}", season.fbref_name
+        "Team matchlogs fetch completed for Season: {}",
+        season.fbref_name,
     )
 
 

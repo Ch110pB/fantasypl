@@ -34,6 +34,7 @@ if TYPE_CHECKING:
 
 def filter_minutes(group: pd.DataFrame) -> pd.DataFrame:
     """
+    Crop player data between first and last appearance.
 
     Parameters
     ----------
@@ -51,9 +52,11 @@ def filter_minutes(group: pd.DataFrame) -> pd.DataFrame:
 
 
 def process_single_team(  # noqa: PLR0914, PLR0915
-    team: Team, season: Season
+    team: Team,
+    season: Season,
 ) -> list[dict[str, PlayerGameWeek]]:
     """
+    Return player gameweeks data for a single team.
 
     Parameters
     ----------
@@ -70,9 +73,12 @@ def process_single_team(  # noqa: PLR0914, PLR0915
     list_files: list[str] = next(
         iter(
             os.walk(
-                DATA_FOLDER_FBREF / season.folder / "matches" / team.short_name
-            )
-        )
+                DATA_FOLDER_FBREF
+                / season.folder
+                / "matches"
+                / team.short_name,
+            ),
+        ),
     )[2]
     dfs_summary: list[pd.DataFrame] = []
     dfs_passing: list[pd.DataFrame] = []
@@ -86,10 +92,12 @@ def process_single_team(  # noqa: PLR0914, PLR0915
             / season.folder
             / "matches"
             / team.short_name
-            / fl
+            / fl,
         )
         df_stats["starts"] = np.where(
-            df_stats["player"].str.contains("\xa0"), 0, 1
+            df_stats["player"].str.contains("\xa0"),
+            0,
+            1,
         )
         df_stats["player"] = df_stats["player"].str.strip()
         _join_cols: list[str] = ["player", "date", "venue"]
@@ -113,7 +121,7 @@ def process_single_team(  # noqa: PLR0914, PLR0915
                         "header_sca_sca": "sca",
                         "header_sca_gca": "gca",
                         "header_carries_progressive_carries": "progressive_carries",  # noqa: E501
-                    }
+                    },
                 )
                 df_stats = df_stats[
                     [
@@ -136,7 +144,7 @@ def process_single_team(  # noqa: PLR0914, PLR0915
                 dfs_summary.append(df_stats)
             case fl if "passing" in fl:
                 df_stats = df_stats.rename(
-                    columns={"assisted_shots": "key_passes"}
+                    columns={"assisted_shots": "key_passes"},
                 )
                 df_stats = df_stats[
                     [
@@ -152,7 +160,7 @@ def process_single_team(  # noqa: PLR0914, PLR0915
                     columns={
                         "header_tackles_tackles_won": "tackles_won",
                         "header_blocks_blocks": "blocks",
-                    }
+                    },
                 )
                 df_stats = df_stats[
                     [
@@ -166,7 +174,7 @@ def process_single_team(  # noqa: PLR0914, PLR0915
                 dfs_defense.append(df_stats)
             case fl if "misc" in fl:
                 df_stats = df_stats.rename(
-                    columns={"header_performance_fouls": "fouls"}
+                    columns={"header_performance_fouls": "fouls"},
                 )
                 df_stats = df_stats[[*_join_cols, "fouls"]]
                 dfs_misc.append(df_stats)
@@ -175,7 +183,7 @@ def process_single_team(  # noqa: PLR0914, PLR0915
                     columns={
                         "header_gk_shot_stopping_gk_saves": "gk_saves",
                         "header_gk_shot_stopping_gk_psxg": "gk_psxg",
-                    }
+                    },
                 )
                 df_stats = df_stats[[*_join_cols, "gk_saves", "gk_psxg"]]
                 dfs_keeper.append(df_stats)
@@ -208,28 +216,36 @@ def process_single_team(  # noqa: PLR0914, PLR0915
 
     df_final: pd.DataFrame = reduce(
         lambda left, right: left.merge(
-            right, on=_join_cols, how="left", validate="m:m"
+            right,
+            on=_join_cols,
+            how="left",
+            validate="m:m",
         ),
         [df_summary, df_passing, df_defense, df_misc, df_keeper],
     )
     df_team_gw: pd.DataFrame = get_team_gameweek_json_to_df(season)
     df_team_gw["date"] = df_team_gw["date"].astype(str)
     df_dates: pd.DataFrame = df_team_gw.loc[
-        df_team_gw["team"] == team, ["date", "venue"]
+        df_team_gw["team"] == team,
+        ["date", "venue"],
     ]
     df_ids: pd.DataFrame = pd.DataFrame({
-        "player": df_final["player"].unique()
+        "player": df_final["player"].unique(),
     })
     df_dates = df_ids.merge(df_dates, how="cross")
     df_dates["date"] = df_dates["date"].astype(str)
     df_final = df_final.merge(
-        df_dates, on=["player", "date", "venue"], how="right", validate="1:1"
+        df_dates,
+        on=["player", "date", "venue"],
+        how="right",
+        validate="1:1",
     )
     df_final.loc[:, df_final.columns != "short_position"] = df_final.loc[
-        :, df_final.columns != "short_position"
+        :,
+        df_final.columns != "short_position",
     ].fillna(0)
     df_final[["short_position"]] = df_final[["short_position"]].map(
-        lambda x: None if pd.isna(x) else x
+        lambda x: None if pd.isna(x) else x,
     )
     df_final = (
         df_final.groupby("player")
@@ -254,6 +270,7 @@ def save_aggregate_player_matchlogs(
     season: Literal[Seasons.SEASON_2324, Seasons.SEASON_2425],
 ) -> None:
     """
+    Return all player gameweeks data.
 
     Parameters
     ----------
@@ -268,7 +285,8 @@ def save_aggregate_player_matchlogs(
             el for el in get_list_teams() if el.fbref_name == team_name
         )
         df_temp: list[dict[str, PlayerGameWeek]] = process_single_team(
-            team, season.value
+            team,
+            season.value,
         )
         dfs += df_temp
     fpath: Path = (

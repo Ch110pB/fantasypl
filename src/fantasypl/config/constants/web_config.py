@@ -1,4 +1,4 @@
-"""URLs for the FPL API and FBRef."""
+"""Constants containing URLs for FBRef and the FPL API."""
 
 FPL_BOOTSTRAP_URL: str = (
     "https://fantasy.premierleague.com/api/bootstrap-static/"

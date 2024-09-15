@@ -1,4 +1,4 @@
-"""Functions for getting FBRef match links"""
+"""Functions for getting FBRef match links."""
 
 from typing import TYPE_CHECKING
 
@@ -17,6 +17,8 @@ if TYPE_CHECKING:
 
 def get_match_links(season: Season) -> None:
     """
+    Get FBRef match links for a given season.
+
     Parameters
     ----------
     season

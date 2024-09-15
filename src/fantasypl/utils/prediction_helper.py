@@ -48,33 +48,6 @@ _list_teams: list[Team] = get_list_teams()
 _list_players: list[Player] = get_list_players()
 
 
-def process_gameweek_data(gameweek: int) -> pd.DataFrame:
-    """
-
-    Parameters
-    ----------
-    gameweek
-        The gameweek under process.
-
-    Returns
-    -------
-        A dataframe containing gameweek fixtures with team FBRef IDs.
-
-    """
-    df_gameweek: pd.DataFrame = pd.read_csv(
-        MODEL_FOLDER / "predictions/team" / f"gameweek_{gameweek}/fixtures.csv"
-    )
-    df_gameweek["team"] = [
-        next(el.fbref_id for el in _list_teams if el.fbref_id == x)
-        for x in df_gameweek["team"]
-    ]
-    df_gameweek["opponent"] = [
-        next(el.fbref_id for el in _list_teams if el.fbref_id == x)
-        for x in df_gameweek["opponent"]
-    ]
-    return df_gameweek
-
-
 def pad_lists(
     row: pd.Series,  # type: ignore[type-arg]
     df_prev_agg: pd.DataFrame,
@@ -82,6 +55,7 @@ def pad_lists(
     group_col: str,
 ) -> Any:  # noqa: ANN401
     """
+    Pad the list of features with aggregated stats from last season.
 
     Parameters
     ----------
@@ -110,6 +84,7 @@ def prepare_df_for_optimization(
     gameweek: int, weights_decays_base: list[float]
 ) -> pd.DataFrame:
     """
+    Prepare dataframe for optimization.
 
     Parameters
     ----------
@@ -127,7 +102,7 @@ def prepare_df_for_optimization(
         MODEL_FOLDER
         / "predictions/player"
         / f"gameweek_{gameweek}"
-        / "prediction_xpoints.csv"
+        / "prediction_xpoints.csv",
     )
     df_expected_points = df_expected_points[
         [
@@ -174,6 +149,7 @@ def prepare_common_lists_from_df(
     npt.NDArray[np.str_],
 ]:
     """
+    Prepare lists for optimization.
 
     Parameters
     ----------
@@ -194,9 +170,11 @@ def prepare_common_lists_from_df(
 
 
 def helper_create_lp_variables(
-    prefixes: list[str], players: npt.NDArray[np.int32]
+    prefixes: list[str],
+    players: npt.NDArray[np.int32],
 ) -> list[npt.NDArray[LpVariable]]:
     """
+    Create LP variables helper function.
 
     Parameters
     ----------
@@ -227,6 +205,7 @@ def prepare_essential_lp_variables(
     npt.NDArray[LpVariable],
 ]:
     """
+    Create essential LP variables.
 
     Parameters
     ----------
@@ -254,6 +233,7 @@ def prepare_additional_lp_variables(
     npt.NDArray[LpVariable],
 ]:
     """
+    Create additional LP variables.
 
     Parameters
     ----------
@@ -282,6 +262,7 @@ def add_count_constraints(  # noqa: PLR0913, PLR0917
     captain: npt.NDArray[LpVariable],
 ) -> LpProblem:
     """
+    Create LP constraints for counts.
 
     Parameters
     ----------
@@ -324,6 +305,7 @@ def helper_add_positional_constraints(  # noqa: PLR0913, PLR0917
     total_count: int,
 ) -> LpProblem:
     """
+    Create LP constraints for positions.
 
     Parameters
     ----------
@@ -350,7 +332,7 @@ def helper_add_positional_constraints(  # noqa: PLR0913, PLR0917
     problem.addConstraint(mask @ lineup >= min_count)
     problem.addConstraint(mask @ lineup <= max_count)
     problem.addConstraint(
-        mask @ (lineup + reduce(operator.add, bench)) == total_count
+        mask @ (lineup + reduce(operator.add, bench)) == total_count,
     )
     return problem
 
@@ -367,6 +349,7 @@ def add_other_constraints(  # noqa: PLR0913, PLR0917
     teams: npt.NDArray[np.str_],
 ) -> LpProblem:
     """
+    Create other LP constraints.
 
     Parameters
     ----------
@@ -445,7 +428,7 @@ def add_other_constraints(  # noqa: PLR0913, PLR0917
         club_mask: npt.NDArray[np.bool] = np.array(teams == club)
         problem.addConstraint(
             club_mask @ (lineup + bench_gk + bench_1 + bench_2 + bench_3)
-            <= MAX_SAME_CLUB_COUNT
+            <= MAX_SAME_CLUB_COUNT,
         )
 
     return problem
@@ -469,6 +452,7 @@ def prepare_return_and_log_variables(  # noqa: PLR0913, PLR0917
     tuple[str, int],
 ]:
     """
+    Prepare variables to return or log.
 
     Parameters
     ----------
@@ -554,9 +538,11 @@ def prepare_return_and_log_variables(  # noqa: PLR0913, PLR0917
 
 
 def add_team_and_position_to_player(
-    player: tuple[str, int], season: Season
+    player: tuple[str, int],
+    season: Season,
 ) -> tuple[str, int, int, str]:
     """
+    Add team ID and position to selected players.
 
     Parameters
     ----------
@@ -596,7 +582,8 @@ def add_team_and_position_to_player(
 
 
 def build_fpl_lineup(
-    players: list[tuple[str, int]], season: Season
+    players: list[tuple[str, int]],
+    season: Season,
 ) -> tuple[
     list[tuple[str, int, int]],
     list[tuple[str, int, int]],
@@ -604,6 +591,7 @@ def build_fpl_lineup(
     list[tuple[str, int, int]],
 ]:
     """
+    Build the final FPL lineup.
 
     Parameters
     ----------
@@ -638,6 +626,7 @@ def build_fpl_lineup(
 
 def send_discord_message(text: str, images: list[Image.Image]) -> None:
     """
+    Send a discord message.
 
     Parameters
     ----------

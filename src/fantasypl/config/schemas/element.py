@@ -19,6 +19,8 @@ class Element(BaseModel):
 
     def __eq__(self, other: object) -> bool:
         """
+        Check equality of two Elements.
+
         Parameters
         ----------
         other
@@ -35,6 +37,8 @@ class Element(BaseModel):
 
     def __hash__(self) -> int:
         """
+        Return the hash value of an Element.
+
         Returns
         -------
             The hash value of the Element.

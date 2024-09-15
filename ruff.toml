@@ -14,14 +14,12 @@ fix = true
 preview = true
 
 [lint]
-select = ["F", "E", "W", "C90", "I", "N", "D", "UP", "ANN",
-    "ASYNC", "S", "BLE", "FBT", "B", "A", "COM", "C4", "DTZ",
-    "EM", "ISC", "ICN", "LOG", "G", "INP", "PIE",
-    "T20", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM",
-    "TID", "TCH", "INT", "ARG", "PTH", "TD", "PD",
-    "PGH", "PL", "TRY", "FLY", "NPY", "FAST", "PERF", "FURB",
-    "DOC", "RUF"]
-ignore = ["COM812", "D205", "D400", "D401", "ISC001", "S301", "S403"]
+select = ["F", "E", "W", "C90", "I", "N", "D", "UP", "ANN", "ASYNC", "S",
+    "BLE", "FBT", "B", "A", "COM", "C4", "DTZ", "EM", "ISC", "ICN", "LOG",
+    "G", "INP", "PIE", "T20", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM",
+    "TID", "TCH", "INT", "ARG", "PTH", "TD", "PD", "PGH", "PL", "TRY", "FLY",
+    "NPY", "FAST", "PERF", "FURB", "DOC", "RUF"]
+ignore = ["COM812", "ISC001"]
 
 [lint.per-file-ignores]
 "__init__.py" = ["D104"]

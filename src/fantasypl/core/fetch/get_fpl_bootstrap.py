@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 
 def get_bootstrap(season: Season) -> None:
     """
+    Get FPL API bootstrap data.
 
     Parameters
     ----------
@@ -35,6 +36,7 @@ def get_bootstrap(season: Season) -> None:
 
 def get_fixtures(season: Season) -> None:
     """
+    Get FPL API fixtures data.
 
     Parameters
     ----------

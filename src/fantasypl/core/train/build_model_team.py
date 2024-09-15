@@ -1,6 +1,6 @@
 """Functions for creating team models."""
 
-import pickle
+import pickle  # noqa: S403
 from typing import TYPE_CHECKING
 
 from flaml import AutoML  # type: ignore[import-untyped]
@@ -31,6 +31,7 @@ if TYPE_CHECKING:
 
 def train_model_automl(season: Season, target: str) -> None:
     """
+    Train team models.
 
     Parameters
     ----------
@@ -42,7 +43,8 @@ def train_model_automl(season: Season, target: str) -> None:
     """
     automl = AutoML()
     x_train, y_train, x_test, y_test = get_train_test_data(
-        folder=f"model_team_{target}", season=season
+        folder=f"model_team_{target}",
+        season=season,
     )
     automl.fit(
         x_train,

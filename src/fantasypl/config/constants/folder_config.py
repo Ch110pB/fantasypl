@@ -1,4 +1,4 @@
-"""Constants for absolute folder paths."""
+"""Constants for pointing to the absolute folder paths."""
 
 from pathlib import Path
 

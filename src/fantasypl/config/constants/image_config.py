@@ -1,4 +1,4 @@
-"""Configs for creating the FPL team image."""
+"""Configs for creating the FPL team images."""
 
 PITCH_IMAGE_WIDTH: int = 1800
 PITCH_IMAGE_HEIGHT: int = 1790
@@ -7,3 +7,4 @@ KIT_IMAGE_HEIGHT: int = 290
 TRANSFER_BOX_WIDTH: int = 320
 TRANSFER_BOX_HEIGHT: int = 80
 TRANSFER_POINTER_IMAGE_SIZE: int = 20
+BENCH_VERTICAL_POSITION: int = 4

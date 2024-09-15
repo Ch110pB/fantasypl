@@ -1,4 +1,4 @@
-"""Configs for modeling with AutoML."""
+"""Configs for building models with AutoML."""
 
 TASK: str = "regression"
 MODELS: list[str] = ["lgbm", "xgboost", "rf"]

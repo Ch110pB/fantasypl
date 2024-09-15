@@ -35,6 +35,7 @@ def find_squad(  # noqa: PLR0914
     weights_decays_base: list[float] | None = None,
 ) -> tuple[list[tuple[str, int]], list[tuple[str, int]], tuple[str, int]]:
     """
+    Find the optimal FPL squad.
 
     Parameters
     ----------
@@ -58,7 +59,8 @@ def find_squad(  # noqa: PLR0914
         bench_weights = BENCH_WEIGHTS_ARRAY
 
     df_values: pd.DataFrame = prepare_df_for_optimization(
-        gameweek, weights_decays_base
+        gameweek,
+        weights_decays_base,
     )
     players, points, prices, positions, teams = prepare_common_lists_from_df(
         df_values
@@ -74,14 +76,20 @@ def find_squad(  # noqa: PLR0914
         + (bench_weights[0] * points) @ bench_gk
         + (bench_weights[1] * points) @ bench_1
         + (bench_weights[2] * points) @ bench_2
-        + (bench_weights[3] * points) @ bench_3
+        + (bench_weights[3] * points) @ bench_3,
     )
 
     problem = add_count_constraints(
-        problem, lineup, bench_gk, bench_1, bench_2, bench_3, captain
+        problem,
+        lineup,
+        bench_gk,
+        bench_1,
+        bench_2,
+        bench_3,
+        captain,
     )
     problem.addConstraint(
-        prices @ (lineup + bench_gk + bench_1 + bench_2 + bench_3) <= budget
+        prices @ (lineup + bench_gk + bench_1 + bench_2 + bench_3) <= budget,
     )
     problem = add_other_constraints(
         problem,
@@ -96,7 +104,7 @@ def find_squad(  # noqa: PLR0914
     )
 
     problem.writeLP(
-        f"{MODEL_FOLDER}/predictions/player/gameweek_{gameweek}/{problem.name}.lp"
+        f"{MODEL_FOLDER}/predictions/player/gameweek_{gameweek}/{problem.name}.lp",
     )
     problem.solve()
     (
@@ -109,7 +117,12 @@ def find_squad(  # noqa: PLR0914
         bench_players,
         captain_player,
     ) = prepare_return_and_log_variables(
-        problem, lineup, bench_gk, bench_1, bench_2, bench_3
+        problem,
+        lineup,
+        bench_gk,
+        bench_1,
+        bench_2,
+        bench_3,
     )
     logger.info("Optimization complete for fresh squad.")
     logger.info("Predicted Lineup Points: {}", optimal_lineup @ points)

@@ -1,7 +1,7 @@
 """Helper functions for saving objects."""
 
 import json
-import pickle
+import pickle  # noqa: S403
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +15,7 @@ def save_json(
     default: Any | None = None,  # noqa: ANN401
 ) -> None:
     """
+    Save the dictionary in a JSON.
 
     Parameters
     ----------
@@ -33,6 +34,7 @@ def save_json(
 
 def save_pandas(df: pd.DataFrame, fpath: Path) -> None:
     """
+    Save the dataframe in a CSV.
 
     Parameters
     ----------
@@ -48,6 +50,7 @@ def save_pandas(df: pd.DataFrame, fpath: Path) -> None:
 
 def save_pkl(obj: Any, fpath: Path, protocol: int | None = None) -> None:  # noqa: ANN401
     """
+    Save the object in a pkl.
 
     Parameters
     ----------
@@ -66,6 +69,7 @@ def save_pkl(obj: Any, fpath: Path, protocol: int | None = None) -> None:  # noq
 
 def save_requests_response(response: requests.Response, fpath: Path) -> None:
     """
+    Save the request response in a file.
 
     Parameters
     ----------

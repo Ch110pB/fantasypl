@@ -12,9 +12,13 @@ from fantasypl.utils import (
 
 
 def build_split_player(
-    season: Season, position: str, target_name: str, target_col: str
+    season: Season,
+    position: str,
+    target_name: str,
+    target_col: str,
 ) -> None:
     """
+    Save player model train-test splits and preprocessor.
 
     Parameters
     ----------
@@ -33,7 +37,7 @@ def build_split_player(
         / season.folder
         / "training/players"
         / position
-        / f"player_{target_name}_features.csv"
+        / f"player_{target_name}_features.csv",
     )
     if target_name == "xsaves":
         team_df: pd.DataFrame = get_team_gameweek_json_to_df(season)
@@ -41,7 +45,10 @@ def build_split_player(
         team_df["date"] = team_df["date"].astype(str)
         team_df = team_df[["team", "date", "npxg_vs"]]
         df_features = df_features.merge(
-            team_df, on=["team", "date"], how="left", validate="m:1"
+            team_df,
+            on=["team", "date"],
+            how="left",
+            validate="m:1",
         )
     _select_cols: list[str] = [
         col

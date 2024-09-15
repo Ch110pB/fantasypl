@@ -1,7 +1,7 @@
 """Helper functions for building ML models and predictions."""
 
 import json
-import pickle
+import pickle  # noqa: S403
 from pathlib import Path
 from typing import Literal
 
@@ -33,6 +33,7 @@ from fantasypl.utils.save_helper import save_pkl
 
 def get_list_teams() -> list[Team]:
     """
+    Get the complete list of teams.
 
     Returns
     -------
@@ -40,14 +41,12 @@ def get_list_teams() -> list[Team]:
 
     """
     with Path.open(DATA_FOLDER_REF / "teams.json", "r") as f:
-        list_teams: list[Team] = [
-            Team.model_validate(el) for el in json.load(f).get("teams")
-        ]
-    return list_teams
+        return [Team.model_validate(el) for el in json.load(f).get("teams")]
 
 
 def get_list_players() -> list[Player]:
     """
+    Get the complete list of players.
 
     Returns
     -------
@@ -55,14 +54,14 @@ def get_list_players() -> list[Player]:
 
     """
     with Path.open(DATA_FOLDER_REF / "players.json", "r") as f:
-        list_players: list[Player] = [
+        return [
             Player.model_validate(el) for el in json.load(f).get("players")
         ]
-    return list_players
 
 
 def get_team_gameweek_json_to_df(season: Season) -> pd.DataFrame:
     """
+    Get a dataframe from the team gameweek JSON.
 
     Parameters
     ----------
@@ -75,17 +74,19 @@ def get_team_gameweek_json_to_df(season: Season) -> pd.DataFrame:
 
     """
     with Path.open(
-        DATA_FOLDER_FBREF / season.folder / "team_matchlogs.json", "r"
+        DATA_FOLDER_FBREF / season.folder / "team_matchlogs.json",
+        "r",
     ) as f:
         list_team_matchlogs: list[TeamGameweek] = [
             TeamGameweek.model_validate(el)
             for el in json.load(f).get("team_matchlogs")
         ]
-    return pd.DataFrame([dict(el) for el in list_team_matchlogs])
+    return pd.DataFrame([el.model_dump() for el in list_team_matchlogs])
 
 
 def get_player_gameweek_json_to_df(season: Season) -> pd.DataFrame:
     """
+    Get a dataframe from the player gameweek JSON.
 
     Parameters
     ----------
@@ -98,17 +99,19 @@ def get_player_gameweek_json_to_df(season: Season) -> pd.DataFrame:
 
     """
     with Path.open(
-        DATA_FOLDER_FBREF / season.folder / "player_matchlogs.json", "r"
+        DATA_FOLDER_FBREF / season.folder / "player_matchlogs.json",
+        "r",
     ) as f:
         list_player_matchlogs: list[PlayerGameWeek] = [
             PlayerGameWeek.model_validate(el)
             for el in json.load(f).get("player_matchlogs")
         ]
-    return pd.DataFrame([dict(el) for el in list_player_matchlogs])
+    return pd.DataFrame([el.model_dump() for el in list_player_matchlogs])
 
 
 def get_fbref_teams(season: Season) -> list[str]:
     """
+    Get list of FBRef team names.
 
     Parameters
     ----------
@@ -120,9 +123,9 @@ def get_fbref_teams(season: Season) -> list[str]:
         The list of FBRef team names for the season.
 
     """
-    return [
-        *pd.read_csv(f"{DATA_FOLDER_FBREF}/{season.folder}/teams.csv")["name"]
-    ]
+    return pd.read_csv(f"{DATA_FOLDER_FBREF}/{season.folder}/teams.csv")[
+        "name"
+    ].to_list()
 
 
 def get_form_data(
@@ -131,6 +134,7 @@ def get_form_data(
     team_or_player: Literal["team", "player", "opponent"],
 ) -> pd.DataFrame:
     """
+    Get data with lagged features.
 
     Parameters
     ----------
@@ -167,6 +171,7 @@ def get_static_data(
     team_or_player: Literal["team", "player", "opponent"],
 ) -> pd.DataFrame:
     """
+    Get data with aggregated features.
 
     Parameters
     ----------
@@ -207,6 +212,7 @@ def preprocess_data_and_save(  # noqa: PLR0913, PLR0917
     position: str | None = None,
 ) -> None:
     """
+    Save preprocessed data for ML model training.
 
     Parameters
     ----------
@@ -252,7 +258,10 @@ def preprocess_data_and_save(  # noqa: PLR0913, PLR0917
     df_train: pd.DataFrame
     df_test: pd.DataFrame
     df_train, df_test = train_test_split(
-        df_us, train_size=0.8, random_state=SEED, shuffle=True
+        df_us,
+        train_size=0.8,
+        random_state=SEED,
+        shuffle=True,
     )
     x_train: pd.DataFrame
     y_train: npt.NDArray[np.float32]
@@ -279,6 +288,8 @@ def preprocess_data_and_save(  # noqa: PLR0913, PLR0917
     folder: str = (
         season.folder if position is None else f"{season.folder}/{position}"
     )
+    key: str
+    value: npt.NDArray[np.float32]
     for key, value in dict_array.items():
         fpath: Path = (
             MODEL_FOLDER
@@ -295,7 +306,8 @@ def preprocess_data_and_save(  # noqa: PLR0913, PLR0917
 
 
 def get_train_test_data(
-    folder: str, season: Season
+    folder: str,
+    season: Season,
 ) -> tuple[
     npt.NDArray[np.float32],
     npt.NDArray[np.float32],
@@ -303,6 +315,7 @@ def get_train_test_data(
     npt.NDArray[np.float32],
 ]:
     """
+    Load the train-test split data.
 
     Parameters
     ----------
@@ -320,9 +333,10 @@ def get_train_test_data(
     dict_array: dict[str, npt.NDArray[np.float32]] = {}
     for arr in list_array:
         with Path.open(
-            MODEL_FOLDER / season.folder / folder / f"{arr}.pkl", "rb"
+            MODEL_FOLDER / season.folder / folder / f"{arr}.pkl",
+            "rb",
         ) as f:
-            dict_array[arr] = pickle.load(f)
+            dict_array[arr] = pickle.load(f)  # noqa: S301
     return (
         dict_array["x_train"],
         dict_array["y_train"],

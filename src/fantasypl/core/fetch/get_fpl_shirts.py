@@ -15,8 +15,9 @@ from fantasypl.config.schemas import Season, Seasons
 from fantasypl.utils import save_requests_response
 
 
-def get_shirts(season: Season) -> None:
+def get_kits_and_badges(season: Season) -> None:
     """
+    Get FPL kits and team badges.
 
     Parameters
     ----------
@@ -24,11 +25,14 @@ def get_shirts(season: Season) -> None:
         The season under process.
 
     """
-    df_fpl_teams = pd.read_csv(DATA_FOLDER_FPL / season.folder / "teams.csv")
-    team_codes = df_fpl_teams["code"].tolist()
+    df_fpl_teams: pd.DataFrame = pd.read_csv(
+        DATA_FOLDER_FPL / season.folder / "teams.csv"
+    )
+    team_codes: list[int] = df_fpl_teams["code"].to_list()
 
     for code in rich.progress.track(
-        team_codes, "Downloading shirt graphics: "
+        team_codes,
+        "Downloading shirt graphics: ",
     ):
         url: str = f"{FPL_SHIRTS_URL}/shirt_{code}-220.png"
         response: requests.Response = requests.get(url, timeout=5)
@@ -55,4 +59,4 @@ def get_shirts(season: Season) -> None:
 
 
 if __name__ == "__main__":
-    get_shirts(Seasons.SEASON_2425.value)
+    get_kits_and_badges(Seasons.SEASON_2425.value)

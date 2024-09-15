@@ -22,7 +22,6 @@ from .prediction_helper import (
     prepare_df_for_optimization,
     prepare_essential_lp_variables,
     prepare_return_and_log_variables,
-    process_gameweek_data,
     send_discord_message,
 )
 from .save_helper import (
@@ -58,7 +57,6 @@ __all__ = [
     "prepare_return_and_log_variables",
     "prepare_transfers",
     "preprocess_data_and_save",
-    "process_gameweek_data",
     "save_json",
     "save_pandas",
     "save_pkl",

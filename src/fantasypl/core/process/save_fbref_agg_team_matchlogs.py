@@ -23,6 +23,7 @@ def process_single_stat(
     dropna_cols: list[str],
 ) -> pd.DataFrame:
     """
+    Process team gameweeks data for a single stat.
 
     Parameters
     ----------
@@ -49,9 +50,11 @@ def process_single_stat(
 
 
 def process_single_team(
-    team_short_name: str, season: Season
+    team_short_name: str,
+    season: Season,
 ) -> list[dict[str, TeamGameweek]]:
     """
+    Return team gameweeks data for a single team.
 
     Parameters
     ----------
@@ -71,7 +74,10 @@ def process_single_team(
 
     df_team_gw: pd.DataFrame = reduce(
         lambda left, right: left.merge(
-            right, on="date", how="left", validate="1:1"
+            right,
+            on="date",
+            how="left",
+            validate="1:1",
         ),
         [
             process_single_stat(
@@ -262,6 +268,7 @@ def save_aggregate_team_matchlogs(
     season: Literal[Seasons.SEASON_2324, Seasons.SEASON_2425],
 ) -> None:
     """
+    Return all team gameweeks data.
 
     Parameters
     ----------
@@ -276,7 +283,8 @@ def save_aggregate_team_matchlogs(
             el for el in get_list_teams() if el.fbref_name == team_name
         )
         df_temp: list[dict[str, TeamGameweek]] = process_single_team(
-            team.short_name, season.value
+            team.short_name,
+            season.value,
         )
         dfs += df_temp
     fpath: Path = (

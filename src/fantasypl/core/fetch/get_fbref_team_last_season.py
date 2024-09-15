@@ -42,6 +42,7 @@ _tables: list[str] = [
 
 def get_league_season(season: Season, league_id: int) -> None:
     """
+    Get the seasonal FBRef stats for league.
 
     Parameters
     ----------
@@ -52,11 +53,13 @@ def get_league_season(season: Season, league_id: int) -> None:
 
     """
     content: str = get_content(
-        f"{FBREF_BASE_URL}/comps/{league_id}/{season.fbref_long_name}/"
+        f"{FBREF_BASE_URL}/comps/{league_id}/{season.fbref_long_name}/",
     )
     dfs: list[pd.DataFrame] = asyncio.run(
-        get_single_table(content=content, tables=_tables)
+        get_single_table(content=content, tables=_tables),
     )
+    j: int
+    df: pd.DataFrame
     for j, df in enumerate(dfs):
         fpath: Path = (
             DATA_FOLDER_FBREF

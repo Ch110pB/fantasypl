@@ -1,16 +1,4 @@
-"""
-Dictionaries containing mappings.
-
-Contains
---------
-FBREF_LEAGUE_OPTA_STRENGTH_DICT
-    Dictionary containing league strengths
-    of last season (Opta Power Rankings).
-FBREF_POSITION_MAPPING
-    Dictionary containing FBRef position
-    to short_position mapping.
-
-"""
+"""Dictionaries containing FBRef league and position mappings."""
 
 FBREF_LEAGUE_OPTA_STRENGTH_DICT: dict[str, float] = {
     "eng ENG_1. Premier League": 86.5,
@@ -44,6 +32,9 @@ FBREF_LEAGUE_OPTA_STRENGTH_DICT: dict[str, float] = {
     "pl POL_1. Ekstraklasa": 75.3,
     "sct SCO_2. Championship": 62.05,
 }
+"""
+Dictionary containing league strengths of last season (Opta Power Rankings).
+"""
 
 FBREF_POSITION_MAPPING: dict[str, str] = {
     "GK": "GK",
@@ -64,3 +55,6 @@ FBREF_POSITION_MAPPING: dict[str, str] = {
     "LW": "FW",
     "RW": "FW",
 }
+"""
+Dictionary containing FBRef position to short_position mapping.
+"""

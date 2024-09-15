@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
 def get_teams(season: Season) -> None:
     """
+    Get FBRef teams for a season.
 
     Parameters
     ----------
@@ -28,7 +29,9 @@ def get_teams(season: Season) -> None:
     content: str = get_content(url=url, delay=0)
     table_id: str = f"results{season.fbref_long_name}91_overall"
     df_teams: pd.DataFrame = extract_table(
-        content=content, table_id=table_id, href=True
+        content=content,
+        table_id=table_id,
+        href=True,
     )
     df_teams["fbref_id"] = (
         df_teams["team"].str[1].str.strip().str.split("/").str[3]

@@ -27,6 +27,7 @@ def process_stat(  # noqa: PLR0913, PLR0917
     game_count_col: str = "minutes_90s",
 ) -> pd.DataFrame:
     """
+    Process team stats from last season.
 
     Parameters
     ----------
@@ -53,7 +54,7 @@ def process_stat(  # noqa: PLR0913, PLR0917
         / season.folder
         / "team_season"
         / str(league_id)
-        / f"{stat}.csv"
+        / f"{stat}.csv",
     )
     if stat.endswith("against"):
         df_["team"] = df_["team"].str.replace("vs ", "")
@@ -77,6 +78,7 @@ def process_stat(  # noqa: PLR0913, PLR0917
 
 def build_team_features_prediction(season: Season) -> None:
     """
+    Build team aggregated stats from last season.
 
     Parameters
     ----------
@@ -91,7 +93,7 @@ def build_team_features_prediction(season: Season) -> None:
             / season.folder
             / "team_season"
             / str(league_id)
-            / "standard.csv"
+            / "standard.csv",
         )
         df_standard = df_standard[["team", "possession"]]
         if league_id == 10:  # noqa: PLR2004
@@ -232,7 +234,10 @@ def build_team_features_prediction(season: Season) -> None:
 
         df_league: pd.DataFrame = reduce(
             lambda left, right: left.merge(
-                right, on=["team"], how="left", validate="1:1"
+                right,
+                on=["team"],
+                how="left",
+                validate="1:1",
             ),
             [
                 df_standard,
@@ -261,7 +266,8 @@ def build_team_features_prediction(season: Season) -> None:
     fpath: Path = DATA_FOLDER_FBREF / season.folder / "team_seasonal_stats.csv"
     save_pandas(df_other_stats, fpath)
     logger.info(
-        "Team seasonal averages saved for season: {}", season.fbref_long_name
+        "Team seasonal averages saved for season: {}",
+        season.fbref_long_name,
     )
 
 

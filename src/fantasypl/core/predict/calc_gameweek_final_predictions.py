@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 
 def calc_final_stats(gameweek: int) -> None:
     """
+    Calculate expected stats for the players for the gameweek.
 
     Parameters
     ----------
@@ -43,7 +44,7 @@ def calc_final_stats(gameweek: int) -> None:
         ],
     )
     df_team_predictions = df_team_predictions.rename(
-        columns={**{col: f"team_{col}" for col in ["xgoals", "xpens", "xyc"]}}
+        columns={**{col: f"team_{col}" for col in ["xgoals", "xpens", "xyc"]}},
     )
 
     dict_xgoals: dict[tuple[str, int], float] = (
@@ -51,9 +52,12 @@ def calc_final_stats(gameweek: int) -> None:
         .set_index(["team", "gameweek"])
         .to_dict()["team_xgoals"]
     )
-    df_team_predictions["xgoals_vs"] = df_team_predictions.apply(
-        lambda row: dict_xgoals[row["opponent"], row["gameweek"]], axis=1
-    )
+    df_team_predictions["xgoals_vs"] = [
+        dict_xgoals[opponent, gameweek]
+        for opponent, gameweek in zip(
+            df_team_predictions["opponent"], df_team_predictions["gameweek"]
+        )
+    ]
 
     dfs_player: list[pd.DataFrame] = []
     for pos in ["GK", "DF", "MF", "FW"]:
@@ -61,7 +65,7 @@ def calc_final_stats(gameweek: int) -> None:
         for model in ["xgoals", "xassists", "xmins", "xpens", "xyc", "xsaves"]:
             try:
                 df_: pd.DataFrame = pd.read_csv(
-                    player_preds_path / pos / f"prediction_{model}.csv"
+                    player_preds_path / pos / f"prediction_{model}.csv",
                 )
                 dfs.append(df_)
             except FileNotFoundError:  # noqa: PERF203
@@ -92,7 +96,7 @@ def calc_final_stats(gameweek: int) -> None:
         df_expected_stats["xgoals"]
         * df_expected_stats["team_xgoals"]
         / df_expected_stats.groupby(["team", "gameweek"])["xgoals"].transform(
-            "sum"
+            "sum",
         )
     )
     df_expected_stats["xassists"] = (
@@ -106,21 +110,21 @@ def calc_final_stats(gameweek: int) -> None:
         df_expected_stats["xmins"]
         * 990
         / df_expected_stats.groupby(["team", "gameweek"])["xmins"].transform(
-            "sum"
+            "sum",
         )
     )
     df_expected_stats["xyc"] = (
         df_expected_stats["xyc"]
         * df_expected_stats["team_xyc"]
         / df_expected_stats.groupby(["team", "gameweek"])["xyc"].transform(
-            "sum"
+            "sum",
         )
     )
     df_expected_stats["xpens"] = (
         df_expected_stats["xpens"]
         * df_expected_stats["team_xpens"]
         / df_expected_stats.groupby(["team", "gameweek"])["xpens"].transform(
-            "sum"
+            "sum",
         )
     )
 
@@ -139,7 +143,8 @@ def calc_final_stats(gameweek: int) -> None:
         ]
     ]
     save_pandas(
-        df_expected_stats, player_preds_path / "prediction_expected_stats.csv"
+        df_expected_stats,
+        player_preds_path / "prediction_expected_stats.csv",
     )
     logger.info("Expected stats saved for all players.")
 

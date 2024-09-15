@@ -1,6 +1,6 @@
 """Functions to predict player-level for each gameweek."""
 
-import pickle
+import pickle  # noqa: S403
 import statistics
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -27,7 +27,6 @@ from fantasypl.utils import (
     get_list_teams,
     get_player_gameweek_json_to_df,
     pad_lists,
-    process_gameweek_data,
     save_pandas,
 )
 
@@ -41,6 +40,7 @@ if TYPE_CHECKING:
 
 def find_opponent_npxg_data(gameweek: int) -> pd.DataFrame:
     """
+    Find the non-penalty expected goals of the opponent team.
 
     Parameters
     ----------
@@ -55,22 +55,25 @@ def find_opponent_npxg_data(gameweek: int) -> pd.DataFrame:
     df_xgoals: pd.DataFrame = pd.read_csv(
         MODEL_FOLDER
         / "predictions/team"
-        / f"gameweek_{gameweek}/prediction_xgoals.csv"
+        / f"gameweek_{gameweek}/prediction_xgoals.csv",
     )
     dict_xgoals: dict[tuple[str, str, int], float] = df_xgoals.set_index([
         "team",
         "opponent",
         "gameweek",
     ]).to_dict()["xgoals"]
-    df_xgoals["npxg_vs"] = df_xgoals.apply(
-        lambda row: dict_xgoals[row["opponent"], row["team"], row["gameweek"]],
-        axis=1,
-    )
+    df_xgoals["npxg_vs"] = [
+        dict_xgoals[opponent, team, gameweek]
+        for opponent, team, gameweek in zip(
+            df_xgoals["opponent"], df_xgoals["team"], df_xgoals["gameweek"]
+        )
+    ]
     return df_xgoals
 
 
 def add_players(season: Season) -> pd.DataFrame:
     """
+    Add all players in FPL.
 
     Parameters
     ----------
@@ -83,7 +86,7 @@ def add_players(season: Season) -> pd.DataFrame:
 
     """
     df_fpl_players: pd.DataFrame = pd.read_csv(
-        DATA_FOLDER_FPL / season.folder / "players.csv"
+        DATA_FOLDER_FPL / season.folder / "players.csv",
     )
 
     df_fpl_players["player"] = [
@@ -98,9 +101,12 @@ def add_players(season: Season) -> pd.DataFrame:
 
 
 def build_predict_features(
-    season: Season, gameweek: int, previous_season: Season
+    season: Season,
+    gameweek: int,
+    previous_season: Season,
 ) -> pd.DataFrame:
     """
+    Create dataframe containing all player features.
 
     Parameters
     ----------
@@ -116,8 +122,12 @@ def build_predict_features(
         A dataframe with all the features.
 
     """
-    df_gameweek = process_gameweek_data(gameweek)
-    df_xgoals = find_opponent_npxg_data(gameweek)
+    df_gameweek: pd.DataFrame = pd.read_csv(
+        MODEL_FOLDER
+        / "predictions/team"
+        / f"gameweek_{gameweek}/fixtures.csv",
+    )
+    df_xgoals: pd.DataFrame = find_opponent_npxg_data(gameweek)
     df_gameweek = df_gameweek.merge(
         df_xgoals,
         on=["team", "opponent", "gameweek"],
@@ -125,16 +135,19 @@ def build_predict_features(
         validate="1:1",
     )
 
-    df_players = add_players(season)
+    df_players: pd.DataFrame = add_players(season)
     df_gameweek = df_gameweek.merge(
-        df_players, on=["team"], how="left", validate="m:m"
+        df_players,
+        on=["team"],
+        how="left",
+        validate="m:m",
     )
 
     df_season: pd.DataFrame = get_player_gameweek_json_to_df(season)
     df_season["player"] = [player.fbref_id for player in df_season["player"]]
 
     unavailable_players: list[str] = list(
-        set(df_gameweek["player"]) - set(df_season["player"])
+        set(df_gameweek["player"]) - set(df_season["player"]),
     )
     df_empty = pd.DataFrame({"player": unavailable_players})
     df_empty = df_empty.reindex(columns=df_season.columns, fill_value=None)
@@ -158,7 +171,7 @@ def build_predict_features(
             | set(cols_form_for_xmins)
             | set(cols_form_for_xpens)
             | set(cols_form_for_xsaves)
-            | {"player", "short_position"}
+            | {"player", "short_position"},
         )
     ]
     cols: list[str] = list(set(df_season.columns) - {"player"})
@@ -171,16 +184,17 @@ def build_predict_features(
     df_prev: pd.DataFrame = pd.read_csv(
         DATA_FOLDER_FBREF
         / previous_season.folder
-        / "player_seasonal_stats.csv"
+        / "player_seasonal_stats.csv",
     )
     df_prev = df_prev.set_index("player")
     for col in cols:
         df_agg[col] = df_agg.apply(
-            lambda row, c=col: pad_lists(row, df_prev, c, "player"), axis=1
+            lambda row, c=col: pad_lists(row, df_prev, c, "player"),
+            axis=1,
         )
     df_agg = df_agg.set_index("player")
     df_gameweek["short_position"] = df_gameweek["player"].apply(
-        lambda x: statistics.mode(df_agg.at[x, "short_position"])  # noqa: PD008
+        lambda x: statistics.mode(df_agg.at[x, "short_position"]),  # noqa: PD008
     )
     new_columns_: dict[str, pd.Series] = {}  # type: ignore[type-arg]
     for col in (
@@ -214,6 +228,7 @@ def predict_for_stat(
     previous_season: Season,
 ) -> None:
     """
+    Save the player stat predictions.
 
     Parameters
     ----------
@@ -236,7 +251,7 @@ def predict_for_stat(
         / f"model_player_{target}/model.pkl",
         "rb",
     ) as fl:
-        model: flaml.AutoML = pickle.load(fl)
+        model: flaml.AutoML = pickle.load(fl)  # noqa: S301
     with Path.open(
         MODEL_FOLDER
         / previous_season.folder
@@ -244,7 +259,7 @@ def predict_for_stat(
         / f"model_player_{target}/preprocessor.pkl",
         "rb",
     ) as fl:
-        preprocessor: sklearn.compose.ColumnTransformer = pickle.load(fl)
+        preprocessor: sklearn.compose.ColumnTransformer = pickle.load(fl)  # noqa: S301
 
     features = features.loc[features["short_position"] == position]
     final_features: npt.NDArray[np.float32] = preprocessor.transform(features)
@@ -262,7 +277,9 @@ def predict_for_stat(
         fpath,
     )
     logger.info(
-        "Predictions saved for player {} for position {}", target, position
+        "Predictions saved for player {} for position {}",
+        target,
+        position,
     )
 
 
@@ -271,7 +288,9 @@ if __name__ == "__main__":
     last_season: Season = Seasons.SEASON_2324.value
     this_season: Season = Seasons.SEASON_2425.value
     df_features: pd.DataFrame = build_predict_features(
-        this_season, gw, last_season
+        this_season,
+        gw,
+        last_season,
     )
     for pos_ in ["GK"]:
         predict_for_stat(df_features, pos_, "xsaves", gw, last_season)

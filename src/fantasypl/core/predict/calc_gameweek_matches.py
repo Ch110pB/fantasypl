@@ -17,6 +17,7 @@ from fantasypl.utils import get_list_teams, save_pandas
 
 def get_gw_matches(season: Season, gameweek: int) -> None:
     """
+    Get the matches of the gameweek.
 
     Parameters
     ----------
@@ -27,43 +28,43 @@ def get_gw_matches(season: Season, gameweek: int) -> None:
 
     """
     with Path.open(
-        DATA_FOLDER_FPL / season.folder / "fixtures.json", "r"
+        DATA_FOLDER_FPL / season.folder / "fixtures.json",
+        "r",
     ) as fl:
         list_fixtures: list[dict[str, Any]] = json.load(fl)
     df_fixtures: pd.DataFrame = pd.DataFrame(list_fixtures)[
         ["code", "event", "team_h", "team_a"]
     ]
     df_teams: pd.DataFrame = pd.read_csv(
-        DATA_FOLDER_FPL / season.folder / "teams.csv"
+        DATA_FOLDER_FPL / season.folder / "teams.csv",
     )
     teams_dict: dict[str, str] = {
         el[0]: el[1]
         for el in df_teams[["id", "code"]].to_dict(orient="split")["data"]
     }
-    df_fixtures["team_h"] = (
-        df_fixtures["team_h"]
-        .map(teams_dict)
-        .apply(
-            lambda x: next(
-                el.fbref_id for el in get_list_teams() if el.fpl_code == x
-            )
+    df_fixtures["team_h"] = [
+        next(
+            el.fbref_id
+            for el in get_list_teams()
+            if el.fpl_code == int(teams_dict[team_h])
         )
-    )
-    df_fixtures["team_a"] = (
-        df_fixtures["team_a"]
-        .map(teams_dict)
-        .apply(
-            lambda x: next(
-                el.fbref_id for el in get_list_teams() if el.fpl_code == x
-            )
+        for team_h in df_fixtures["team_h"]
+    ]
+    df_fixtures["team_a"] = [
+        next(
+            el.fbref_id
+            for el in get_list_teams()
+            if el.fpl_code == int(teams_dict[team_a])
         )
-    )
+        for team_a in df_fixtures["team_a"]
+    ]
+
     mask: pd.Series[bool] = (gameweek <= df_fixtures["event"].astype(int)) & (
         df_fixtures["event"].astype(int) <= gameweek + 2
     )
     df_gameweek: pd.DataFrame = df_fixtures.loc[mask, :]
 
-    df: pd.DataFrame = (
+    df_matches: pd.DataFrame = (
         (
             pd.concat(
                 [
@@ -94,7 +95,7 @@ def get_gw_matches(season: Season, gameweek: int) -> None:
         / f"gameweek_{gameweek}"
         / "fixtures.csv"
     )
-    save_pandas(df=df, fpath=fpath)
+    save_pandas(df=df_matches, fpath=fpath)
     logger.info("Fixtures saved for gameweek {}", gameweek)
 
 

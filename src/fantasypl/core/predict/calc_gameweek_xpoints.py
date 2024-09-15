@@ -20,6 +20,7 @@ from fantasypl.utils import get_list_players, save_pandas
 
 def calc_xpoints(gameweek: int, season: Season) -> None:
     """
+    Calculate expected points for players for the gameweek.
 
     Parameters
     ----------
@@ -30,14 +31,14 @@ def calc_xpoints(gameweek: int, season: Season) -> None:
 
     """
     df_fpl_players: pd.DataFrame = pd.read_csv(
-        DATA_FOLDER_FPL / season.folder / "players.csv"
+        DATA_FOLDER_FPL / season.folder / "players.csv",
     )
     df_fpl_players["player"] = [
         {p.fpl_code: p.fbref_id for p in get_list_players()}.get(p)
         for p in df_fpl_players["code"]
     ]
     df_fpl_players["fpl_position"] = df_fpl_players["element_type"].map(
-        FPL_POSITION_ID_DICT
+        FPL_POSITION_ID_DICT,
     )
     df_fpl_players = df_fpl_players[
         [
@@ -56,17 +57,21 @@ def calc_xpoints(gameweek: int, season: Season) -> None:
     df_expected_stats: pd.DataFrame = pd.read_csv(
         MODEL_FOLDER
         / "predictions/player"
-        / f"gameweek_{gameweek}/prediction_expected_stats.csv"
+        / f"gameweek_{gameweek}/prediction_expected_stats.csv",
     )
     df_fpl_players = df_fpl_players.merge(
-        df_expected_stats, on="player", how="left", validate="1:m"
+        df_expected_stats,
+        on="player",
+        how="left",
+        validate="1:m",
     )
 
-    df_fpl_players["prob_60"] = df_fpl_players["xmins"].apply(
-        lambda x: 1 - norm.cdf(60, loc=x, scale=MINUTES_STANDARD_DEVIATION)
+    df_fpl_players["prob_60"] = [
+        1 - norm.cdf(60, loc=x, scale=MINUTES_STANDARD_DEVIATION)
         if x > 0
         else 0
-    )
+        for x in df_fpl_players["xmins"]
+    ]
     df_fpl_players["points_mins"] = df_fpl_players["prob_60"] * 2
     df_fpl_players["points_goals"] = df_fpl_players["xgoals"] * df_fpl_players[
         "fpl_position"
@@ -79,10 +84,12 @@ def calc_xpoints(gameweek: int, season: Season) -> None:
         * df_fpl_players["prob_60"]
     )
     df_fpl_players["points_goals_conceded"] = poisson.pmf(
-        2, df_fpl_players["xgoals_vs"]
+        2,
+        df_fpl_players["xgoals_vs"],
     ) * df_fpl_players["fpl_position"].map(POINTS_GOALS_CONCEDED)
     df_fpl_players["points_gk_saves"] = poisson.pmf(
-        3, df_fpl_players["xsaves"]
+        3,
+        df_fpl_players["xsaves"],
     ) * df_fpl_players["fpl_position"].map(POINTS_SAVES)
     df_fpl_players["points"] = (
         df_fpl_players["points_mins"]
