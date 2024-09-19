@@ -367,7 +367,7 @@ def find_optimal_transfers(  # noqa: PLR0913, PLR0914, PLR0917
 
 
 if __name__ == "__main__":
-    gw: int = 4
+    gw: int = 5
     this_season: Season = Seasons.SEASON_2425.value
     eleven, subs, cap, out, ft, hit = find_optimal_transfers(gw, this_season)
     logger.info("Starting Lineup: {}", eleven)

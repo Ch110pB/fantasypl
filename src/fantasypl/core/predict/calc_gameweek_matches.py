@@ -100,6 +100,6 @@ def get_gw_matches(season: Season, gameweek: int) -> None:
 
 
 if __name__ == "__main__":
-    gw: int = 4
+    gw: int = 5
     this_season: Season = Seasons.SEASON_2425.value
     get_gw_matches(this_season, gw)

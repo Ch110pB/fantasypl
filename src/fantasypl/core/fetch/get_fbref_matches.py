@@ -1,16 +1,14 @@
 """Functions for getting FBRef match details."""
 
 import asyncio
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
 import rich.progress
 from loguru import logger
 
-from fantasypl.config.constants import (
-    DATA_FOLDER_FBREF,
-    FBREF_BASE_URL,
-)
+from fantasypl.config.constants import DATA_FOLDER_FBREF
 from fantasypl.config.schemas import Season, Seasons, Team
 from fantasypl.utils import (
     get_content,
@@ -82,7 +80,7 @@ def get_fpath(
     return file_path
 
 
-def get_matches(season: Season) -> None:
+def get_matches(season: Season, filter_date: str | None = None) -> None:
     """
     Get the FBRef match stats.
 
@@ -90,13 +88,25 @@ def get_matches(season: Season) -> None:
     ----------
     season
         The season under progress.
+    filter_date
+        The date after which matches need to be fetched.
 
     """
     logger.info("Downloading match data for season {}", season.fbref_name)
     df_links: pd.DataFrame = pd.read_csv(
         DATA_FOLDER_FBREF / season.folder / "match_links.csv",
     )
-
+    if filter_date is not None:
+        df_links["date"] = pd.to_datetime(df_links["date"]).dt.date
+        df_links = df_links[
+            df_links["date"]
+            >= datetime.strptime(filter_date, "%Y-%m-%d").date()  # noqa: DTZ007
+        ]
+        df_links = df_links.reset_index(drop=True)
+        logger.info(
+            "Checking for matches after the date: {}",
+            datetime.strptime(filter_date, "%Y-%m-%d").date(),  # noqa: DTZ007
+        )
     with rich.progress.Progress() as progress:
         _task_id: rich.progress.TaskID = progress.add_task(
             "[cyan]Getting match_stats from FBRef: ",
@@ -114,7 +124,7 @@ def get_matches(season: Season) -> None:
             tables_away: list[str] = [
                 table_idx.format(away_team) for table_idx in _tables
             ]
-            content: str = get_content(url=f"{FBREF_BASE_URL}/{match_link}")
+            content: str = get_content(url=f"https://fbref.com{match_link}")
             dfs_home: list[pd.DataFrame] = asyncio.run(
                 get_single_table(content=content, tables=tables_home),
             )
@@ -155,5 +165,5 @@ def get_matches(season: Season) -> None:
 
 
 if __name__ == "__main__":
-    get_matches(Seasons.SEASON_2425.value)
+    get_matches(Seasons.SEASON_2425.value, filter_date="2024-09-02")
     # get_matches(Seasons.SEASON_2324.value)

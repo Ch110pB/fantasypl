@@ -14,7 +14,7 @@ from fantasypl.config.constants import (
     MODEL_FOLDER,
     TEAM_PREDICTION_SCALING_FACTORS,
 )
-from fantasypl.config.schemas import Season, Seasons
+from fantasypl.config.schemas import Season, Seasons, Team
 from fantasypl.core.train.build_features_team import (
     cols_form_for_xgoals,
     cols_form_for_xpens,
@@ -63,9 +63,12 @@ def build_predict_features(season: Season, gameweek: int) -> pd.DataFrame:
     )
 
     df_season: pd.DataFrame = get_team_gameweek_json_to_df(season)
-    df_season["team"] = [team.fbref_id for team in df_season["team"]]
+    df_season["team"] = [
+        Team.model_validate(team).fbref_id for team in df_season["team"]
+    ]
     df_season["opponent"] = [
-        opponent.fbref_id for opponent in df_season["opponent"]
+        Team.model_validate(opponent).fbref_id
+        for opponent in df_season["opponent"]
     ]
     df_season = df_season.sort_values(by=["date"], ascending=True)
     df_season = df_season[
@@ -179,7 +182,7 @@ def predict_for_stat(
 
 
 if __name__ == "__main__":
-    gw: int = 4
+    gw: int = 5
     this_season: Season = Seasons.SEASON_2425.value
     df_features: pd.DataFrame = build_predict_features(this_season, gw)
     predict_for_stat(df_features, "xgoals", gw)

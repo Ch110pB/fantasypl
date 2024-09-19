@@ -150,4 +150,4 @@ def calc_final_stats(gameweek: int) -> None:
 
 
 if __name__ == "__main__":
-    calc_final_stats(4)
+    calc_final_stats(5)

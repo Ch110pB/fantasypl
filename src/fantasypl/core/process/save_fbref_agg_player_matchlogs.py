@@ -226,7 +226,7 @@ def process_single_team(  # noqa: PLR0914, PLR0915
     df_team_gw: pd.DataFrame = get_team_gameweek_json_to_df(season)
     df_team_gw["date"] = df_team_gw["date"].astype(str)
     df_dates: pd.DataFrame = df_team_gw.loc[
-        df_team_gw["team"] == team,
+        df_team_gw["team"] == Team.model_dump(team),
         ["date", "venue"],
     ]
     df_ids: pd.DataFrame = pd.DataFrame({

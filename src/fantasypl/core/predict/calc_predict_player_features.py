@@ -13,7 +13,7 @@ from fantasypl.config.constants import (
     DATA_FOLDER_FPL,
     MODEL_FOLDER,
 )
-from fantasypl.config.schemas import Season, Seasons
+from fantasypl.config.schemas import Player, Season, Seasons
 from fantasypl.core.train.build_features_player import (
     cols_form_for_xassists,
     cols_form_for_xgoals,
@@ -144,7 +144,10 @@ def build_predict_features(
     )
 
     df_season: pd.DataFrame = get_player_gameweek_json_to_df(season)
-    df_season["player"] = [player.fbref_id for player in df_season["player"]]
+    df_season["player"] = [
+        Player.model_validate(player).fbref_id
+        for player in df_season["player"]
+    ]
 
     unavailable_players: list[str] = list(
         set(df_gameweek["player"]) - set(df_season["player"]),
@@ -284,7 +287,7 @@ def predict_for_stat(
 
 
 if __name__ == "__main__":
-    gw: int = 4
+    gw: int = 5
     last_season: Season = Seasons.SEASON_2324.value
     this_season: Season = Seasons.SEASON_2425.value
     df_features: pd.DataFrame = build_predict_features(

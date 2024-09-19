@@ -56,5 +56,5 @@ def get_current_team(team_id: int, gameweek: int) -> None:
 
 
 if __name__ == "__main__":
-    get_all_transfers(85599, 4)
-    get_current_team(85599, 4)
+    get_all_transfers(85599, 5)
+    get_current_team(85599, 5)
