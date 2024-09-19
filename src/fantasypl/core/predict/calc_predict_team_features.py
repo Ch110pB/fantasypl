@@ -40,7 +40,7 @@ if TYPE_CHECKING:
 last_season: Season = Seasons.SEASON_2324.value
 
 
-def build_predict_features(season: Season, gameweek: int) -> pd.DataFrame:
+def build_predict_features_team(season: Season, gameweek: int) -> pd.DataFrame:
     """
     Create dataframe containing all team features.
 
@@ -131,7 +131,7 @@ def build_predict_features(season: Season, gameweek: int) -> pd.DataFrame:
     return df_result
 
 
-def predict_for_stat(
+def predict_for_stat_team(
     features: pd.DataFrame,
     target: str,
     gameweek: int,
@@ -184,7 +184,7 @@ def predict_for_stat(
 if __name__ == "__main__":
     gw: int = 5
     this_season: Season = Seasons.SEASON_2425.value
-    df_features: pd.DataFrame = build_predict_features(this_season, gw)
-    predict_for_stat(df_features, "xgoals", gw)
-    predict_for_stat(df_features, "xyc", gw)
-    predict_for_stat(df_features, "xpens", gw)
+    df_features: pd.DataFrame = build_predict_features_team(this_season, gw)
+    predict_for_stat_team(df_features, "xgoals", gw)
+    predict_for_stat_team(df_features, "xyc", gw)
+    predict_for_stat_team(df_features, "xpens", gw)

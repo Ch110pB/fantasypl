@@ -100,7 +100,7 @@ def add_players(season: Season) -> pd.DataFrame:
     return df_fpl_players[["player", "team"]].dropna(how="any")
 
 
-def build_predict_features(
+def build_predict_features_player(
     season: Season,
     gameweek: int,
     previous_season: Season,
@@ -223,7 +223,7 @@ def build_predict_features(
     return df_result
 
 
-def predict_for_stat(
+def predict_for_stat_player(
     features: pd.DataFrame,
     position: str,
     target: str,
@@ -290,18 +290,18 @@ if __name__ == "__main__":
     gw: int = 5
     last_season: Season = Seasons.SEASON_2324.value
     this_season: Season = Seasons.SEASON_2425.value
-    df_features: pd.DataFrame = build_predict_features(
+    df_features: pd.DataFrame = build_predict_features_player(
         this_season,
         gw,
         last_season,
     )
     for pos_ in ["GK"]:
-        predict_for_stat(df_features, pos_, "xsaves", gw, last_season)
+        predict_for_stat_player(df_features, pos_, "xsaves", gw, last_season)
     for pos_ in ["MF", "FW"]:
-        predict_for_stat(df_features, pos_, "xpens", gw, last_season)
+        predict_for_stat_player(df_features, pos_, "xpens", gw, last_season)
     for pos_ in ["DF", "MF", "FW"]:
-        predict_for_stat(df_features, pos_, "xgoals", gw, last_season)
-        predict_for_stat(df_features, pos_, "xassists", gw, last_season)
+        predict_for_stat_player(df_features, pos_, "xgoals", gw, last_season)
+        predict_for_stat_player(df_features, pos_, "xassists", gw, last_season)
     for pos_ in ["GK", "DF", "MF", "FW"]:
-        predict_for_stat(df_features, pos_, "xmins", gw, last_season)
-        predict_for_stat(df_features, pos_, "xyc", gw, last_season)
+        predict_for_stat_player(df_features, pos_, "xmins", gw, last_season)
+        predict_for_stat_player(df_features, pos_, "xyc", gw, last_season)
