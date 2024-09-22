@@ -8,7 +8,6 @@ from .folder_config import (
     RESOURCE_FOLDER,
 )
 from .image_config import (
-    BENCH_VERTICAL_POSITION,
     KIT_IMAGE_HEIGHT,
     KIT_IMAGE_WIDTH,
     PITCH_IMAGE_HEIGHT,
@@ -62,13 +61,13 @@ from .web_config import (
     FPL_BADGES_URL,
     FPL_BOOTSTRAP_URL,
     FPL_FIXTURES_URL,
+    FPL_PHOTOS_URL,
     FPL_SHIRTS_URL,
     FPL_TEAM_URL,
 )
 
 
 __all__ = [
-    "BENCH_VERTICAL_POSITION",
     "BENCH_WEIGHTS_ARRAY",
     "DATA_FOLDER_FBREF",
     "DATA_FOLDER_FPL",
@@ -79,6 +78,7 @@ __all__ = [
     "FPL_BADGES_URL",
     "FPL_BOOTSTRAP_URL",
     "FPL_FIXTURES_URL",
+    "FPL_PHOTOS_URL",
     "FPL_POSITION_ID_DICT",
     "FPL_SHIRTS_URL",
     "FPL_TEAM_URL",

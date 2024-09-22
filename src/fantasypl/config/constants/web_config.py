@@ -7,6 +7,9 @@ FPL_FIXTURES_URL: str = "https://fantasy.premierleague.com/api/fixtures/"
 FPL_SHIRTS_URL: str = (
     "https://fantasy.premierleague.com/dist/img/shirts/standard"
 )
+FPL_PHOTOS_URL: str = (
+    "https://resources.premierleague.com/premierleague/photos/players/250x250"
+)
 FPL_BADGES_URL: str = (
     "https://resources.premierleague.com/premierleague/badges/100"
 )

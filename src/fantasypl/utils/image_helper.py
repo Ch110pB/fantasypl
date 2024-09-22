@@ -10,7 +10,6 @@ import numpy.typing as npt
 from PIL import Image, ImageDraw, ImageFont
 
 from fantasypl.config.constants import (
-    BENCH_VERTICAL_POSITION,
     KIT_IMAGE_HEIGHT,
     KIT_IMAGE_WIDTH,
     PITCH_IMAGE_HEIGHT,
@@ -23,13 +22,11 @@ from fantasypl.config.constants import (
 from fantasypl.config.schemas import Season
 
 
-def create_kit_with_textbox(  # noqa: PLR0913
-    team_code: int,
+def create_kit_with_textbox(
     player_code: int,
     player_name: str,
     season: Season,
     *,
-    is_gk: bool,
     captain_player_code: int,
 ) -> Image.Image:
     """
@@ -37,16 +34,12 @@ def create_kit_with_textbox(  # noqa: PLR0913
 
     Parameters
     ----------
-    team_code
-        FPL team Code.
     player_code
         FPL player Code.
     player_name
         FPL player web name.
     season
         The season under process.
-    is_gk
-        Boolean for whether goalkeeper kits to be picked.
     captain_player_code
         FPL player code of the captain.
 
@@ -59,29 +52,29 @@ def create_kit_with_textbox(  # noqa: PLR0913
         RESOURCE_FOLDER / "fonts/PremierLeagueW01-Bold.woff2",
         size=30,
     )
-    shirt: str = (
-        f"shirt_{team_code}_gk.png" if is_gk else f"shirt_{team_code}.png"
+    shirt: str = f"photo_{player_code}.png"
+    kit_image: Image.Image = (
+        Image.open(
+            RESOURCE_FOLDER / season.folder / "photos" / shirt,
+        )
+        .resize((KIT_IMAGE_WIDTH, KIT_IMAGE_WIDTH))
+        .convert("RGBA")
     )
-    kit_image: Image.Image = Image.open(
-        RESOURCE_FOLDER / season.folder / "shirts" / shirt,
-    ).convert("RGBA")
-
-    draw: ImageDraw.ImageDraw = ImageDraw.Draw(kit_image)
-    draw.rounded_rectangle(
-        xy=[(0, KIT_IMAGE_WIDTH), (KIT_IMAGE_WIDTH, KIT_IMAGE_HEIGHT)],
-        radius=10,
-        fill=(255, 255, 255),
-        outline=(55, 0, 60),
+    name_box_image: Image.Image = Image.new(
+        "RGBA",
+        (KIT_IMAGE_WIDTH, KIT_IMAGE_HEIGHT - KIT_IMAGE_WIDTH),
+        (255, 255, 255),
     )
+    draw: ImageDraw.ImageDraw = ImageDraw.Draw(name_box_image)
     draw.text(
-        (
-            KIT_IMAGE_WIDTH // 2,
-            KIT_IMAGE_WIDTH + (KIT_IMAGE_HEIGHT - KIT_IMAGE_WIDTH) // 2,
-        ),
+        (KIT_IMAGE_WIDTH // 2, (KIT_IMAGE_HEIGHT - KIT_IMAGE_WIDTH) // 2),
         player_name,
         fill=(55, 0, 60),
         anchor="mm",
         font=font,
+    )
+    kit_image = Image.fromarray(
+        np.vstack([np.asarray(kit_image), np.asarray(name_box_image)])
     )
     if player_code == captain_player_code:
         captain_image: Image.Image = (
@@ -124,37 +117,14 @@ def paste_kits_on_pitch(
 
     """
     i: int
-    for i, (player_name, player_code, team_code) in enumerate(list_elements):
+    for i, (player_name, player_code, _) in enumerate(list_elements):
         kit_image: Image.Image
-        if vertical_position in {1, 2, 3}:
-            kit_image = create_kit_with_textbox(
-                team_code,
-                player_code,
-                player_name,
-                season,
-                is_gk=False,
-                captain_player_code=captain[1],
-            )
-        elif vertical_position == 0 or (
-            vertical_position == BENCH_VERTICAL_POSITION and i == 0
-        ):
-            kit_image = create_kit_with_textbox(
-                team_code,
-                player_code,
-                player_name,
-                season,
-                is_gk=True,
-                captain_player_code=captain[1],
-            )
-        else:
-            kit_image = create_kit_with_textbox(
-                team_code,
-                player_code,
-                player_name,
-                season,
-                is_gk=False,
-                captain_player_code=captain[1],
-            )
+        kit_image = create_kit_with_textbox(
+            player_code,
+            player_name,
+            season,
+            captain_player_code=captain[1],
+        )
         pitch_image.paste(
             kit_image,
             (
