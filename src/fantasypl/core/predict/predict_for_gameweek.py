@@ -52,7 +52,7 @@ from fantasypl.utils import (
 
 
 if __name__ == "__main__":
-    gameweek: int = 6
+    gameweek: int = int(input("Enter gameweek: "))
     team_id: int = 85599
 
     get_bootstrap(Seasons.SEASON_2425.value)
