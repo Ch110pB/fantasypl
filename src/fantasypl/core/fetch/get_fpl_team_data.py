@@ -19,7 +19,7 @@ def get_all_transfers(team_id: int, gameweek: int) -> None:
         The gameweek under process.
 
     """
-    url: str = f"{FPL_TEAM_URL}/{team_id}/transfers"
+    url: str = f"{FPL_TEAM_URL}/{team_id}/transfers/"
     response: requests.Response = requests.get(url, timeout=5)
     save_json(
         response.json(),
@@ -56,5 +56,5 @@ def get_current_team(team_id: int, gameweek: int) -> None:
 
 
 if __name__ == "__main__":
-    get_all_transfers(85599, 5)
+    get_all_transfers(85599, 6)
     get_current_team(85599, 5)

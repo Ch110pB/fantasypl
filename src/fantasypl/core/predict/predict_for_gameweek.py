@@ -32,6 +32,9 @@ from fantasypl.core.predict.find_optimal_squad import find_squad
 from fantasypl.core.predict.find_optimal_transfers import (
     find_optimal_transfers,
 )
+from fantasypl.core.predict.process_last_season_player_averages import (
+    build_players_features_prediction,
+)
 from fantasypl.core.process.process_refs_player import get_player_references
 from fantasypl.core.process.save_fbref_agg_player_matchlogs import (
     save_aggregate_player_matchlogs,
@@ -49,7 +52,7 @@ from fantasypl.utils import (
 
 
 if __name__ == "__main__":
-    gameweek: int = 5
+    gameweek: int = 6
     team_id: int = 85599
 
     get_bootstrap(Seasons.SEASON_2425.value)
@@ -64,6 +67,9 @@ if __name__ == "__main__":
         filter_players=filter_players,
     )
     get_player_references(Seasons.SEASON_2324.value)
+    build_players_features_prediction(
+        Seasons.SEASON_2324.value, Seasons.SEASON_2425.value
+    )
 
     get_match_links(Seasons.SEASON_2425.value)
     last_deadline_date: str = input(
@@ -152,7 +158,7 @@ if __name__ == "__main__":
     send_discord_message(message, [pitch])
 
     get_all_transfers(team_id, gameweek)
-    get_current_team(team_id, gameweek)
+    get_current_team(team_id, gameweek - 1)
 
     eleven, subs, cap, out, ft, hit = find_optimal_transfers(
         gameweek, Seasons.SEASON_2425.value

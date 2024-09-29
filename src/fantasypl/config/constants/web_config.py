@@ -13,5 +13,5 @@ FPL_PHOTOS_URL: str = (
 FPL_BADGES_URL: str = (
     "https://resources.premierleague.com/premierleague/badges/100"
 )
-FPL_TEAM_URL: str = "https://fantasy.premierleague.com/api/entry/"
+FPL_TEAM_URL: str = "https://fantasy.premierleague.com/api/entry"
 FBREF_BASE_URL: str = "https://fbref.com/en"

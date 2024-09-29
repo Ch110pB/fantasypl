@@ -116,6 +116,6 @@ def calc_xpoints(gameweek: int, season: Season) -> None:
 
 
 if __name__ == "__main__":
-    gw: int = 5
+    gw: int = 6
     this_season: Season = Seasons.SEASON_2425.value
     calc_xpoints(gw, this_season)

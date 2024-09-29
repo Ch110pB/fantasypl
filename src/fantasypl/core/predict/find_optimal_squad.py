@@ -142,7 +142,7 @@ def find_squad(  # noqa: PLR0914
 
 if __name__ == "__main__":
     this_season: Season = Seasons.SEASON_2425.value
-    gw: int = 5
+    gw: int = 6
     eleven, subs, cap = find_squad(gw)
     logger.info("Starting Lineup: {}", eleven)
     logger.info("Bench: {}", subs)
