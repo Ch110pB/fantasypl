@@ -254,6 +254,9 @@ def get_image_grid(
         Transfer image grid.
 
     """
+    if len(images) < rows * cols:
+        padding_image = Image.new('RGB', images[0].size, color=(255, 255, 255))
+        images += [padding_image] * ((rows * cols) - len(images))
     image_arrays: list[npt.NDArray[np.int32]] = [
         np.asarray(img) for img in images
     ]
